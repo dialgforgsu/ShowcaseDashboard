@@ -474,6 +474,8 @@ td.bc select option{background:var(--card2)}
     <div id="task-body"></div>
   </div>
 
+  <div class="col-resizer" id="col-resizer-end"></div>
+
 </div><!-- /main -->
 
 <!-- BOTTOM BAR -->
@@ -1311,31 +1313,32 @@ function initColResize(){
     handle.addEventListener('mousedown',e=>{
       e.preventDefault();
       const prev=handle.previousElementSibling;
-      const next=handle.nextElementSibling;
-      if(!prev||!next)return;
+      const next=handle.nextElementSibling?.classList?.contains('panel')?handle.nextElementSibling:null;
+      if(!prev||!prev.classList.contains('panel'))return;
       const startX=e.clientX;
       const prevW=prev.getBoundingClientRect().width;
-      const nextW=next.getBoundingClientRect().width;
+      const nextW=next?next.getBoundingClientRect().width:0;
       handle.classList.add('dragging');
       const minW=100;
       function onMove(e){
         const dx=e.clientX-startX;
-        const nPrev=Math.max(minW,prevW+dx);
-        const nNext=Math.max(minW,nextW-dx);
-        // Only resize if both stay above min
-        if(prevW+dx>=minW&&nextW-dx>=minW){
-          // Use flex-basis for flex items; for col-ros (flex:1) use width
-          if(prev.id==='col-ros'){prev.style.flex='none';prev.style.width=nPrev+'px';}
-          else{prev.style.flex='none';prev.style.width=nPrev+'px';}
-          if(next.id==='col-ros'){next.style.flex='none';next.style.width=nNext+'px';}
-          else{next.style.flex='none';next.style.width=nNext+'px';}
+        if(next){
+          // Between two panels: shrink one, grow the other
+          if(prevW+dx>=minW&&nextW-dx>=minW){
+            prev.style.flex='none';prev.style.width=(prevW+dx)+'px';
+            if(next.id!=='col-ros'){next.style.flex='none';next.style.width=(nextW-dx)+'px';}
+          }
+        } else {
+          // Trailing resizer: only resize prev; col-ros (flex:1) absorbs the difference
+          if(prevW+dx>=minW){
+            prev.style.flex='none';prev.style.width=(prevW+dx)+'px';
+          }
         }
       }
       function onUp(){
         handle.classList.remove('dragging');
         document.removeEventListener('mousemove',onMove);
         document.removeEventListener('mouseup',onUp);
-        // Persist col widths
         saveColLayout();
       }
       document.addEventListener('mousemove',onMove);
@@ -1514,9 +1517,8 @@ async function loadColLayout(){
     if(item.id==='ros'){p.style.flex='1';p.style.width='';}
     else if(item.w){p.style.flex='none';p.style.width=item.w;}
     main.appendChild(p);
-    if(i<validItems.length-1){
-      const r=document.createElement('div');r.className='col-resizer';main.appendChild(r);
-    }
+    // Add resizer after every panel (including last — trailing right-edge resizer)
+    const r=document.createElement('div');r.className='col-resizer';main.appendChild(r);
   });
   initColResize();
   initColDrag();
