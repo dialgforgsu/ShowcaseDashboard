@@ -57,7 +57,7 @@ a{color:inherit;text-decoration:none}
 .bar-sep{width:1px;height:18px;background:var(--border);flex-shrink:0;margin:0 2px}
 
 /* ── MAIN PANEL CONTAINER ── */
-#main{display:flex;height:var(--main);overflow:hidden;position:relative}
+#main{display:flex;width:100%;height:var(--main);overflow:hidden;position:relative}
 
 /* Panels */
 .panel{display:flex;flex-direction:column;overflow:hidden;position:relative;min-width:120px;border-right:1px solid var(--border)}
@@ -84,7 +84,7 @@ a{color:inherit;text-decoration:none}
 .ch-grip:active{cursor:grabbing}
 
 /* ── CALENDAR ── */
-#cal-list{flex:1;overflow-y:auto;padding:6px}
+#cal-list{flex:1;overflow-y:auto;padding:6px;min-height:60px}
 .cal-evt{background:var(--card2);border:1px solid var(--border);border-radius:6px;padding:5px 8px;margin-bottom:4px;border-left:3px solid var(--teal);font-size:.74rem}
 .cal-evt.soon{border-left-color:var(--coral)}
 .cal-evt.today{border-left-color:var(--gold)}
@@ -92,6 +92,16 @@ a{color:inherit;text-decoration:none}
 .cal-evt-date{color:var(--muted);margin-top:1px;font-size:.67rem}
 .cal-evt-loc{color:var(--accent);font-size:.67rem;margin-top:1px}
 #cal-empty{text-align:center;padding:12px;color:var(--muted);font-size:.75rem}
+/* ── CAL SPLIT ZONE ── */
+#cal-vsplit{height:5px;flex-shrink:0;background:var(--border);cursor:row-resize;transition:background .15s;display:none;position:relative;z-index:5;overflow:visible}
+#cal-vsplit:hover,#cal-vsplit.dragging{background:var(--accent)}
+#cal-vsplit:hover #cal-undock-btn{opacity:1}
+#cal-undock-btn{opacity:0;transition:opacity .15s}
+#cal-split-zone{display:flex;flex-direction:column;flex-shrink:0;min-height:36px;transition:flex .2s}
+#cal-split-hint{margin:6px;border:2px dashed var(--border);border-radius:6px;padding:8px 4px;text-align:center;font-size:.63rem;color:var(--muted);opacity:.55;transition:all .2s;pointer-events:none}
+body.col-dragging #cal-split-hint{border-color:var(--accent);opacity:1;background:rgba(124,111,255,.08);color:var(--accent)}
+#cal-split-zone.drag-over #cal-split-hint{border-color:var(--teal);background:rgba(0,212,170,.1);color:var(--teal);opacity:1}
+#cal-split-content{display:none;flex:1;flex-direction:column;overflow:hidden;min-height:60px}
 
 /* Notes panel */
 #notes-ed{flex:1;background:transparent;border:none;color:var(--text);padding:8px 10px;font-family:'Courier New',monospace;font-size:.76rem;resize:none;outline:none;line-height:1.55;overflow-y:auto}
@@ -386,6 +396,15 @@ td.bc select option{background:var(--card2)}
       </div>
     </div>
     <div id="cal-list"><div id="cal-empty">Loading…</div></div>
+    <!-- Vertical split handle (visible when panel is docked below) -->
+    <div id="cal-vsplit" title="Drag to resize split">
+      <button id="cal-undock-btn" onclick="undockCalSplit()" title="Pop section back out" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);padding:0 5px;height:14px;font-size:.6rem;line-height:1;pointer-events:auto;background:var(--card2);border:1px solid var(--border);border-radius:3px;color:var(--muted);cursor:pointer;display:none">↑ pop out</button>
+    </div>
+    <!-- Drop zone / docked content -->
+    <div id="cal-split-zone">
+      <div id="cal-split-hint">⬇ Drag any column here to split</div>
+      <div id="cal-split-content"></div>
+    </div>
   </div>
 
   <div class="col-resizer" data-between="cal,notes"></div>
@@ -1286,7 +1305,9 @@ function showToast(msg,type=''){const t=document.getElementById('toast');t.textC
 
 // ═══════════════════════ COLUMN RESIZE ═══════════════════
 function initColResize(){
-  document.querySelectorAll('.col-resizer').forEach(handle=>{
+  document.querySelectorAll('.col-resizer').forEach(oldH=>{
+    const handle=oldH.cloneNode(true);
+    oldH.parentNode.replaceChild(handle,oldH);
     handle.addEventListener('mousedown',e=>{
       e.preventDefault();
       const prev=handle.previousElementSibling;
@@ -1327,35 +1348,51 @@ function initColResize(){
 let colDragSrc=null;
 function initColDrag(){
   document.querySelectorAll('[data-drag-col]').forEach(grip=>{
-    grip.addEventListener('mousedown',e=>{
-      // Only start drag from the grip icon itself or the header (not buttons/inputs)
+    // Remove old listeners by cloning
+    const ng=grip.cloneNode(true);
+    grip.parentNode.replaceChild(ng,grip);
+    ng.addEventListener('mousedown',e=>{
       if(e.target.closest('button,a,input,select'))return;
-      const colId=grip.dataset.dragCol;
+      const colId=ng.dataset.dragCol;
       const panel=document.getElementById('col-'+colId);
-      if(!panel)return;
+      if(!panel||!panel.closest('#main'))return; // skip if docked inside split
       e.preventDefault();
       colDragSrc=colId;
       panel.classList.add('col-drag-src');
+      document.body.classList.add('col-dragging');
       const ghost=panel.cloneNode(false);
       ghost.id='col-ghost';
       ghost.style.cssText=`position:fixed;width:${panel.offsetWidth}px;height:${panel.offsetHeight}px;opacity:.25;pointer-events:none;background:var(--accent);border-radius:4px;z-index:500;top:${e.clientY-20}px;left:${e.clientX-40}px`;
       document.body.appendChild(ghost);
+      const splitZone=document.getElementById('cal-split-zone');
 
-      function onMove(e){
-        ghost.style.left=(e.clientX-40)+'px';
-        ghost.style.top=(e.clientY-20)+'px';
-        // Highlight drop target
+      function onMove(ev){
+        ghost.style.left=(ev.clientX-40)+'px';
+        ghost.style.top=(ev.clientY-20)+'px';
         document.querySelectorAll('.panel').forEach(p=>p.classList.remove('col-drop-target'));
-        const over=document.elementFromPoint(e.clientX,e.clientY)?.closest('.panel');
-        if(over&&over.dataset.col!==colDragSrc)over.classList.add('col-drop-target');
+        splitZone.classList.remove('drag-over');
+        const over=document.elementFromPoint(ev.clientX,ev.clientY);
+        if(over?.closest('#cal-split-zone')){
+          if(colDragSrc!=='cal')splitZone.classList.add('drag-over');
+        } else {
+          const op=over?.closest('.panel');
+          if(op&&op.dataset.col&&op.dataset.col!==colDragSrc&&op.closest('#main'))op.classList.add('col-drop-target');
+        }
       }
-      function onUp(e){
+      function onUp(ev){
         ghost.remove();
         panel.classList.remove('col-drag-src');
-        const target=document.elementFromPoint(e.clientX,e.clientY)?.closest('.panel');
+        document.body.classList.remove('col-dragging');
+        splitZone.classList.remove('drag-over');
         document.querySelectorAll('.panel').forEach(p=>p.classList.remove('col-drop-target'));
-        if(target&&target.dataset.col&&target.dataset.col!==colDragSrc){
-          swapCols(colDragSrc,target.dataset.col);
+        const over=document.elementFromPoint(ev.clientX,ev.clientY);
+        if(over?.closest('#cal-split-zone')&&colDragSrc!=='cal'){
+          dockToCalSplit(colDragSrc);
+        } else {
+          const target=over?.closest('.panel');
+          if(target&&target.dataset.col&&target.dataset.col!==colDragSrc&&target.closest('#main')){
+            swapCols(colDragSrc,target.dataset.col);
+          }
         }
         colDragSrc=null;
         document.removeEventListener('mousemove',onMove);
@@ -1364,6 +1401,74 @@ function initColDrag(){
       document.addEventListener('mousemove',onMove);
       document.addEventListener('mouseup',onUp);
     });
+  });
+}
+
+// ═══════════════════════ CAL SPLIT ═══════════════════════
+let calDockedColId=null;
+function dockToCalSplit(colId){
+  if(calDockedColId)undockCalSplit();
+  const panel=document.getElementById('col-'+colId);
+  if(!panel||colId==='cal')return;
+  // Remove adjacent resizer from #main
+  const prev=panel.previousElementSibling;
+  const next=panel.nextElementSibling;
+  if(prev?.classList.contains('col-resizer'))prev.remove();
+  else if(next?.classList.contains('col-resizer'))next.remove();
+  // Move panel into split zone
+  panel.style.flex='1';panel.style.width='';panel.style.height='';
+  const content=document.getElementById('cal-split-content');
+  content.appendChild(panel);
+  content.style.display='flex';
+  document.getElementById('cal-vsplit').style.display='block';
+  document.getElementById('cal-undock-btn').style.display='block';
+  document.getElementById('cal-split-hint').style.display='none';
+  document.getElementById('cal-split-zone').style.flex='1';
+  document.getElementById('cal-list').style.flex='1';
+  calDockedColId=colId;
+  initCalVSplit();
+  saveColLayout();
+}
+function undockCalSplit(){
+  if(!calDockedColId)return;
+  const panel=document.getElementById('col-'+calDockedColId);
+  if(panel){
+    panel.style.flex='';panel.style.width='';panel.style.height='';
+    const main=document.getElementById('main');
+    const r=document.createElement('div');r.className='col-resizer';
+    main.appendChild(r);main.appendChild(panel);
+  }
+  document.getElementById('cal-split-content').style.display='none';
+  document.getElementById('cal-split-content').innerHTML='';
+  document.getElementById('cal-vsplit').style.display='none';
+  document.getElementById('cal-undock-btn').style.display='none';
+  document.getElementById('cal-split-hint').style.display='';
+  document.getElementById('cal-split-zone').style.flex='';
+  document.getElementById('cal-list').style.flex='';
+  calDockedColId=null;
+  initColResize();initColDrag();saveColLayout();
+}
+function initCalVSplit(){
+  const handle=document.getElementById('cal-vsplit');
+  const newH=handle.cloneNode(true);
+  handle.parentNode.replaceChild(newH,handle);
+  newH.addEventListener('mousedown',e=>{
+    e.preventDefault();
+    const calList=document.getElementById('cal-list');
+    const splitZone=document.getElementById('cal-split-zone');
+    const startY=e.clientY;
+    const topH=calList.getBoundingClientRect().height;
+    const botH=splitZone.getBoundingClientRect().height;
+    newH.classList.add('dragging');
+    function onMove(ev){
+      const dy=ev.clientY-startY;
+      if(topH+dy>=60&&botH-dy>=60){
+        calList.style.flex='none';calList.style.height=(topH+dy)+'px';
+        splitZone.style.flex='none';splitZone.style.height=(botH-dy)+'px';
+      }
+    }
+    function onUp(){newH.classList.remove('dragging');document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onUp);}
+    document.addEventListener('mousemove',onMove);document.addEventListener('mouseup',onUp);
   });
 }
 
@@ -1405,7 +1510,9 @@ async function loadColLayout(){
   Object.keys(panels).forEach(id=>{if(!validItems.find(i=>i.id===id))validItems.push({id,w:''});});
   validItems.forEach((item,i)=>{
     const p=panels[item.id];
-    if(item.w){p.style.flex='none';p.style.width=item.w;}
+    // col-ros always flex:1 so it fills remaining width (prevents right-side dead space)
+    if(item.id==='ros'){p.style.flex='1';p.style.width='';}
+    else if(item.w){p.style.flex='none';p.style.width=item.w;}
     main.appendChild(p);
     if(i<validItems.length-1){
       const r=document.createElement('div');r.className='col-resizer';main.appendChild(r);
@@ -1443,6 +1550,7 @@ async function init(){
   // Column resize + drag (loadColLayout calls initColResize + initColDrag internally)
   await loadColLayout();
   initTabDrag();
+  initCalVSplit();
 
   fetchCal();
   setInd('saved');
