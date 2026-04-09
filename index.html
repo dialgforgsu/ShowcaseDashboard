@@ -15,6 +15,12 @@
   --hdr:88px; --bar:36px; --bot:34px;
   --main: calc(100vh - var(--hdr) - var(--bar) - var(--bot));
 }
+body.light{
+  --bg:#f0f2f7;--card:#ffffff;--card2:#e8eaf0;--border:#c8ccd8;
+  --accent:#5a4fcf;--accent2:#7c6fff;--teal:#008f72;--coral:#d94f4f;
+  --gold:#b8860b;--text:#1a1a2e;--muted:#666688;
+  --add:#d4f0e8;--del:#fde8e8;--add-text:#006644;--del-text:#cc2200;
+}
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif}
 input,select,textarea,button{font-family:inherit}
@@ -22,6 +28,11 @@ a{color:inherit;text-decoration:none}
 
 /* ── HEADER ── */
 #hdr{height:var(--hdr);background:linear-gradient(135deg,#1a0a3e,#0d1a3e 50%,#0d2a2a);border-bottom:1px solid var(--border);padding:8px 16px 6px;flex-shrink:0;box-shadow:0 4px 20px rgba(0,0,0,.5);display:flex;align-items:center;gap:12px}
+body.light #hdr{background:linear-gradient(135deg,#dde0f5,#e8eaf7 50%,#dff0ec)}
+#theme-btn{background:none;border:1px solid rgba(255,255,255,.2);border-radius:8px;color:inherit;cursor:pointer;padding:5px 9px;font-size:.9rem;line-height:1;flex-shrink:0;transition:background .15s}
+#theme-btn:hover{background:rgba(255,255,255,.15)}
+body.light #theme-btn{border-color:var(--border)}
+body.light #theme-btn:hover{background:var(--card2)}
 #hdr-center{flex:1;text-align:center}
 #hdr h1{font-size:1.1rem;font-weight:700;letter-spacing:2px;text-transform:uppercase}
 #hdr h1 span{color:var(--accent)}
@@ -149,8 +160,16 @@ body.col-dragging #cal-split-hint{border-color:var(--accent);opacity:1;backgroun
 .rh{cursor:grab;color:var(--muted);padding:0 5px;font-size:.85rem;user-select:none;display:flex;align-items:center;height:32px}
 .rh:active{cursor:grabbing}
 .rn{padding:3px 5px;color:var(--muted);font-size:.68rem;min-width:22px}
-.rs{padding:3px 4px;font-size:.64rem;color:var(--teal);white-space:nowrap;font-family:monospace;min-width:48px}
+.rs{padding:3px 4px;font-size:.64rem;color:var(--teal);white-space:nowrap;font-family:monospace;min-width:60px}
 td.rc input,td.rc select{background:transparent;border:none;color:var(--text);padding:6px 6px;font-size:.74rem;width:100%;outline:none;font-family:inherit}
+/* Duration spinner */
+.dur-cell{display:flex;align-items:center;gap:2px;padding:2px 4px}
+.dur-num{background:transparent;border:none;color:var(--text);font-size:.74rem;width:36px;text-align:right;outline:none;font-family:monospace;padding:4px 2px}
+.dur-num:focus{background:rgba(124,111,255,.1);border-radius:3px}
+.dur-spin{display:flex;flex-direction:column;gap:0}
+.dur-spin button{background:none;border:none;color:var(--muted);cursor:pointer;font-size:.55rem;line-height:1;padding:1px 3px;display:block}
+.dur-spin button:hover{color:var(--accent)}
+.dur-lbl{font-size:.62rem;color:var(--muted);padding-left:2px}
 td.rc input:focus,td.rc select:focus{background:rgba(124,111,255,.1)}
 td.rc select option{background:var(--card2)}
 .rdel{background:none;border:none;color:var(--muted);cursor:pointer;padding:3px 5px;opacity:0;font-size:.78rem}
@@ -354,6 +373,7 @@ td.bc select option{background:var(--card2)}
 
 <!-- HEADER -->
 <div id="hdr">
+  <button id="theme-btn" onclick="toggleTheme()" title="Toggle light/dark mode">🌙</button>
   <div id="hdr-center">
     <h1>YWA <span>Showcase Event</span> — Planning Dashboard</h1>
     <div id="countdown">
@@ -436,7 +456,7 @@ td.bc select option{background:var(--card2)}
       <div class="ch-acts">
         <span id="ros-stat" style="color:var(--gold);font-size:.68rem;font-weight:600">0:00</span>
         <label style="font-size:.65rem;color:var(--muted)">Start:</label>
-        <input id="ros-start" type="time" style="background:var(--card2);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:2px 5px;font-size:.7rem;outline:none;width:76px" oninput="saveS();renderROS()">
+        <input id="ros-start" type="time" style="background:var(--card2);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:2px 5px;font-size:.7rem;outline:none;width:96px" oninput="saveS();renderROS()">
         <button class="btn sm" onclick="exportROSMD()">⬇</button>
       </div>
     </div>
@@ -444,9 +464,8 @@ td.bc select option{background:var(--card2)}
       <table id="ros-table">
         <thead><tr>
           <th style="width:20px"></th><th style="width:20px">#</th>
-          <th style="width:48px">Start</th><th>Act</th>
-          <th style="width:100px">Performer(s)</th>
-          <th style="width:56px">Dur</th>
+          <th style="width:68px">Start</th><th>Act</th>
+          <th style="width:70px">Dur (min)</th>
           <th style="width:100px">Type</th>
           <th>Notes</th><th style="width:20px"></th>
         </tr></thead>
@@ -652,6 +671,19 @@ let S={
   tickets:{cap:0,guests:[]}
 };
 let snaps=[],cmpA=null,cmpB=null,saveTimer=null;
+
+// ═══════════════════════ THEME ═══════════════════════════
+function toggleTheme(){
+  const light=document.body.classList.toggle('light');
+  document.getElementById('theme-btn').textContent=light?'🌑':'🌙';
+  localStorage.setItem('theme',light?'light':'dark');
+}
+function applyTheme(){
+  if(localStorage.getItem('theme')==='light'){
+    document.body.classList.add('light');
+    document.getElementById('theme-btn').textContent='🌑';
+  }
+}
 
 // ═══════════════════════ COUNTDOWN ═══════════════════════
 function tick(){
@@ -913,17 +945,31 @@ function renderTrello(data){
 
 // ═══════════════════════ RUN OF SHOW ═════════════════════
 const RT=['Improv','Sketch','Video','Music','Stand Up','Other'];
-function pDur(s){s=String(s||'').trim().toLowerCase();if(!s)return 0;let m;
-  if((m=s.match(/^(\d+):(\d+)$/)))return+m[1]*60+(+m[2]);
-  if((m=s.match(/^(\d+)h(\d*)m?$/)))return+m[1]*60+(+m[2]||0);
-  if((m=s.match(/^(\d+)h$/)))return+m[1]*60;
-  if((m=s.match(/^(\d+)m$/)))return+m[1];
-  if((m=s.match(/^(\d+)$/)))return+m[1];return 0;}
-function fDur(m){if(!m)return'0:00';return Math.floor(m/60)+':'+String(m%60).padStart(2,'0')}
-function fTime(base,add){if(!base)return'';const[hh,mm]=base.split(':').map(Number);const tot=hh*60+mm+add;const h=Math.floor(tot/60)%24,min=tot%60;const ap=h>=12?'PM':'AM',h12=h%12||12;return`${h12}:${String(min).padStart(2,'0')} ${ap}`}
-function addAct(){S.ros.acts.push({id:Date.now(),name:'',performers:'',duration:'',type:'Performance',notes:''});saveS();renderROS();renderAV();}
+function pDur(s){const n=parseInt(s);return isNaN(n)||n<0?0:n;}
+function fDur(m){if(!m)return'0 min';return m===1?'1 min':m+' min';}
+function fTime(base,add){if(!base)return'';const[hh,mm]=base.split(':').map(Number);const tot=hh*60+mm+add;const h=Math.floor(tot/60)%24,min=tot%60;const ap=h>=12?'PM':'AM',h12=h%12||12;return`${h12}:${String(min).padStart(2,'0')} ${ap}`;}
+function addAct(){S.ros.acts.push({id:Date.now(),name:'',duration:'5',type:'Improv',notes:''});saveS();renderROS();renderAV();}
 function delAct(id){S.ros.acts=S.ros.acts.filter(a=>a.id!==id);saveS();renderROS();renderAV();}
-function upAct(id,f,v){const a=S.ros.acts.find(a=>a.id===id);if(a)a[f]=v;if(f==='duration')renderROS();else schedSave();}
+function upAct(id,f,v){
+  const a=S.ros.acts.find(a=>a.id===id);if(!a)return;
+  a[f]=v;
+  // Sync notes bidirectionally with AV matrix
+  if(f==='notes'){if(!S.av.matrix[id])S.av.matrix[id]={};S.av.matrix[id]['__notes__']=v;}
+  if(f==='duration')renderROS();else schedSave();
+}
+function upAVNote(aid,v){
+  if(!S.av.matrix[aid])S.av.matrix[aid]={};
+  S.av.matrix[aid]['__notes__']=v;
+  // Sync back to ROS act notes
+  const a=S.ros.acts.find(a=>a.id===aid);if(a)a.notes=v;
+  schedSave();
+}
+function stepDur(id,delta){
+  const a=S.ros.acts.find(a=>a.id===id);if(!a)return;
+  const n=Math.max(1,pDur(a.duration)+delta);
+  a.duration=String(n);
+  renderROS();renderAV();schedSave();
+}
 let dSrc=null;
 function rDS(e,id){dSrc=id;e.dataTransfer.effectAllowed='move';e.currentTarget.classList.add('dragging');}
 function rDO(e,id){e.preventDefault();document.querySelectorAll('.rr').forEach(r=>r.classList.remove('drag-over'));if(dSrc!==id)e.currentTarget.classList.add('drag-over');}
@@ -936,18 +982,28 @@ function renderROS(){
   const total=acts.reduce((s,a)=>s+pDur(a.duration),0);
   const h=Math.floor(total/60),m=total%60;
   document.getElementById('ros-stat').textContent=`${h>0?h+'h ':''}${m}m · ${acts.length} acts`;
-  if(!acts.length){body.innerHTML=`<tr><td colspan="9" style="text-align:center;padding:14px;color:var(--muted);font-size:.76rem">No acts yet.</td></tr>`;return;}
+  if(!acts.length){body.innerHTML=`<tr><td colspan="8" style="text-align:center;padding:14px;color:var(--muted);font-size:.76rem">No acts yet.</td></tr>`;return;}
   let cum=0;
   body.innerHTML=acts.map((a,i)=>{
     const cs=start?fTime(start,cum):'';cum+=pDur(a.duration);
+    const mins=pDur(a.duration)||0;
     const tOpts=RT.map(t=>`<option value="${t}" ${a.type===t?'selected':''}>${t}</option>`).join('');
+    // Sync AV notes → ROS if AV has something and ROS doesn't yet
+    const avNote=(S.av.matrix[a.id]||{})['__notes__']||'';
+    const noteVal=a.notes||avNote;
     return`<tr class="rr" draggable="true" ondragstart="rDS(event,${a.id})" ondragover="rDO(event,${a.id})" ondragend="rDE(event)" ondrop="rDP(event,${a.id})">
       <td><div class="rh">⠿</div></td><td class="rn">${i+1}</td><td class="rs">${cs}</td>
       <td class="rc"><input value="${eA(a.name)}" placeholder="Act name…" oninput="upAct(${a.id},'name',this.value)"></td>
-      <td class="rc"><input value="${eA(a.performers)}" placeholder="Performer(s)…" oninput="upAct(${a.id},'performers',this.value)"></td>
-      <td class="rc"><input value="${eA(a.duration)}" placeholder="0:05" style="font-family:monospace" oninput="upAct(${a.id},'duration',this.value)"></td>
+      <td><div class="dur-cell">
+        <input class="dur-num" type="number" min="1" value="${mins}" oninput="upAct(${a.id},'duration',this.value)">
+        <div class="dur-spin">
+          <button onclick="stepDur(${a.id},1)" tabindex="-1">▲</button>
+          <button onclick="stepDur(${a.id},-1)" tabindex="-1">▼</button>
+        </div>
+        <span class="dur-lbl">m</span>
+      </div></td>
       <td class="rc"><select onchange="upAct(${a.id},'type',this.value)">${tOpts}</select></td>
-      <td class="rc"><input value="${eA(a.notes)}" placeholder="Notes…" oninput="upAct(${a.id},'notes',this.value)"></td>
+      <td class="rc"><input value="${eA(noteVal)}" placeholder="Notes…" oninput="upAct(${a.id},'notes',this.value)"></td>
       <td><button class="rdel" onclick="delAct(${a.id})">🗑</button></td>
     </tr>`;
   }).join('');
@@ -955,15 +1011,15 @@ function renderROS(){
 function exportROSMD(){
   const s=S.ros.start;const total=S.ros.acts.reduce((t,a)=>t+pDur(a.duration),0);
   let md=`# Run of Show — YWA Showcase\n**Show Start:** ${s||'TBD'}\n**Total Runtime:** ${fDur(total)}\n\n`;
-  md+=`| # | Start | Act | Performer(s) | Duration | Type | Notes |\n|---|-------|-----|------------|----------|------|-------|\n`;
-  let cum=0;S.ros.acts.forEach((a,i)=>{const cs=s?fTime(s,cum):'—';md+=`| ${i+1} | ${cs} | ${a.name||'—'} | ${a.performers||'—'} | ${fDur(pDur(a.duration))} | ${a.type} | ${a.notes||''} |\n`;cum+=pDur(a.duration);});
+  md+=`| # | Start | Act | Duration | Type | Notes |\n|---|-------|-----|----------|------|-------|\n`;
+  let cum=0;S.ros.acts.forEach((a,i)=>{const cs=s?fTime(s,cum):'—';md+=`| ${i+1} | ${cs} | ${a.name||'—'} | ${fDur(pDur(a.duration))} | ${a.type} | ${a.notes||''} |\n`;cum+=pDur(a.duration);});
   dlTxt(md,'run-of-show.md');
 }
 function printROS(){
   const acts=S.ros.acts;const s=S.ros.start;const total=acts.reduce((t,a)=>t+pDur(a.duration),0);let cum=0;
   document.getElementById('print-area').innerHTML=`<div class="print-h"><h1>YWA Showcase — Run of Show</h1><p>Show Start: ${s||'TBD'} &nbsp;|&nbsp; Total Runtime: ${fDur(total)} &nbsp;|&nbsp; ${acts.length} Acts</p></div>
-    <table class="print-tbl"><thead><tr><th>#</th><th>Start</th><th>Act</th><th>Performer(s)</th><th>Duration</th><th>Type</th><th>Notes</th></tr></thead>
-    <tbody>${acts.map((a,i)=>{const cs=s?fTime(s,cum):'—';cum+=pDur(a.duration);return`<tr><td>${i+1}</td><td>${cs}</td><td><strong>${eH(a.name)||'—'}</strong></td><td>${eH(a.performers)||'—'}</td><td>${fDur(pDur(a.duration))}</td><td>${eH(a.type)}</td><td>${eH(a.notes)}</td></tr>`;}).join('')}</tbody></table>`;
+    <table class="print-tbl"><thead><tr><th>#</th><th>Start</th><th>Act</th><th>Duration</th><th>Type</th><th>Notes</th></tr></thead>
+    <tbody>${acts.map((a,i)=>{const cs=s?fTime(s,cum):'—';cum+=pDur(a.duration);return`<tr><td>${i+1}</td><td>${cs}</td><td><strong>${eH(a.name)||'—'}</strong></td><td>${fDur(pDur(a.duration))}</td><td>${eH(a.type)}</td><td>${eH(a.notes)}</td></tr>`;}).join('')}</tbody></table>`;
   window.print();
 }
 
@@ -1615,6 +1671,7 @@ async function init(){
   if(snaps.length>=2){const s=[...snaps].sort((a,b)=>b.timestamp-a.timestamp);cmpA=s[1].id;cmpB=s[0].id;}
 
   renderTasks();renderCal();renderROS();renderBudget();renderTeam();renderAV();renderTickets();setNoteMode('edit');
+  applyTheme();
   tick();setInterval(tick,30000);
   document.getElementById('notes-ed').addEventListener('input',onNotesChange);
 
