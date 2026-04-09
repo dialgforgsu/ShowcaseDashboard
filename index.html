@@ -60,8 +60,9 @@ a{color:inherit;text-decoration:none}
 #main{display:flex;height:var(--main);overflow:hidden;position:relative}
 
 /* Panels */
-.panel{display:flex;flex-direction:column;overflow:hidden;position:relative;min-width:120px}
-#col-cal{width:220px}
+.panel{display:flex;flex-direction:column;overflow:hidden;position:relative;min-width:120px;border-right:1px solid var(--border)}
+#col-cal{width:180px}
+#col-notes{width:180px}
 #col-ros{flex:1;min-width:200px}
 #col-tasks{width:220px}
 
@@ -92,8 +93,7 @@ a{color:inherit;text-decoration:none}
 .cal-evt-loc{color:var(--accent);font-size:.67rem;margin-top:1px}
 #cal-empty{text-align:center;padding:12px;color:var(--muted);font-size:.75rem}
 
-/* Notes below calendar */
-#notes-pane{border-top:1px solid var(--border);flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:80px}
+/* Notes panel */
 #notes-ed{flex:1;background:transparent;border:none;color:var(--text);padding:8px 10px;font-family:'Courier New',monospace;font-size:.76rem;resize:none;outline:none;line-height:1.55;overflow-y:auto}
 #notes-pv{flex:1;padding:8px 10px;overflow-y:auto;line-height:1.6;font-size:.78rem;display:none}
 #notes-pv h1,#notes-pv h2,#notes-pv h3{color:var(--accent);margin:7px 0 3px}
@@ -169,9 +169,11 @@ td.rc select option{background:var(--card2)}
 
 /* ── BOTTOM BAR (fixed) ── */
 #botbar{height:var(--bot);background:var(--card2);border-top:1px solid var(--border);display:flex;align-items:center;gap:0;flex-shrink:0}
-.btab{padding:0 14px;height:100%;display:flex;align-items:center;gap:5px;font-size:.72rem;cursor:pointer;color:var(--muted);border-right:1px solid var(--border);transition:all .15s;white-space:nowrap}
+.btab{padding:0 14px;height:100%;display:flex;align-items:center;gap:5px;font-size:.72rem;cursor:grab;color:var(--muted);border-right:1px solid var(--border);transition:all .15s;white-space:nowrap;user-select:none}
 .btab:hover{background:var(--card);color:var(--text)}
 .btab.active{background:var(--card);color:var(--accent);border-bottom:2px solid var(--accent)}
+.btab.tab-drag-src{opacity:.4;background:var(--accent2)}
+.btab.tab-drop-target{background:rgba(124,111,255,.25);border-left:2px solid var(--accent)}
 .btab .bx{background:var(--accent);color:#fff;border-radius:7px;padding:0 5px;font-size:.6rem;font-weight:700}
 #botbar-right{margin-left:auto;display:flex;align-items:center;gap:6px;padding:0 10px}
 
@@ -362,8 +364,8 @@ td.bc select option{background:var(--card2)}
 
 <!-- TOOLBAR -->
 <div id="bar">
-  <button class="btn primary" onclick="openSnapModal()">📸 Snapshot</button>
-  <button class="btn" onclick="toggleSnap()">🗂 Snapshots</button>
+  <button class="btn primary" onclick="openSnapModal()">📸 Save Now</button>
+  <button class="btn" onclick="toggleSnap()">🗂 Previous Versions</button>
   <div class="bar-sep"></div>
   <a href="https://calendar.google.com/calendar/r?cid=a544f517a4126784045f189a90369b9f59b8de6f4ece7bad587043b6e854751a%40group.calendar.google.com" target="_blank" class="btn">📆 Cal</a>
   <a href="https://trello.com/b/gDrNovhq/ywa-may-2024-showcase" target="_blank" class="btn">📋 Trello ↗</a>
@@ -374,7 +376,7 @@ td.bc select option{background:var(--card2)}
 <!-- MAIN PANELS -->
 <div id="main">
 
-  <!-- COL 1: Calendar + Notes -->
+  <!-- COL 1: Calendar -->
   <div id="col-cal" class="panel" data-col="cal">
     <div class="ch" data-drag-col="cal">
       <span class="ch-grip" title="Drag to reorder">⠿</span>📅 Next 5 Events
@@ -383,21 +385,25 @@ td.bc select option{background:var(--card2)}
         <button class="btn sm" id="btn-cal-all" onclick="toggleCalAll()">All</button>
       </div>
     </div>
-    <div id="cal-list" style="border-right:1px solid var(--border)"><div id="cal-empty">Loading…</div></div>
-    <div id="notes-pane">
-      <div class="ch" style="border-top:1px solid var(--border)" data-drag-col="cal">
-        <span class="ch-grip">⠿</span>📝 Notes
-        <div class="ch-acts">
-          <button class="btn sm" id="btn-ne" onclick="setNoteMode('edit')">Edit</button>
-          <button class="btn sm" id="btn-np" onclick="setNoteMode('preview')">Preview</button>
-        </div>
-      </div>
-      <textarea id="notes-ed" placeholder="# Notes&#10;&#10;Markdown supported…" style="border-right:1px solid var(--border)"></textarea>
-      <div id="notes-pv" style="border-right:1px solid var(--border)"></div>
-    </div>
+    <div id="cal-list"><div id="cal-empty">Loading…</div></div>
   </div>
 
-  <div class="col-resizer" data-between="cal,ros"></div>
+  <div class="col-resizer" data-between="cal,notes"></div>
+
+  <!-- COL 1b: Notes -->
+  <div id="col-notes" class="panel" data-col="notes">
+    <div class="ch" data-drag-col="notes">
+      <span class="ch-grip" title="Drag to reorder">⠿</span>📝 Notes
+      <div class="ch-acts">
+        <button class="btn sm" id="btn-ne" onclick="setNoteMode('edit')">Edit</button>
+        <button class="btn sm" id="btn-np" onclick="setNoteMode('preview')">Preview</button>
+      </div>
+    </div>
+    <textarea id="notes-ed" placeholder="# Notes&#10;&#10;Markdown supported…"></textarea>
+    <div id="notes-pv"></div>
+  </div>
+
+  <div class="col-resizer" data-between="notes,ros"></div>
 
   <!-- COL 3: Run of Show -->
   <div id="col-ros" class="panel" data-col="ros">
@@ -880,7 +886,7 @@ function renderTrello(data){
 }
 
 // ═══════════════════════ RUN OF SHOW ═════════════════════
-const RT=['Performance','Dance','Song','Comedy','Spoken Word','Music','Ceremony','Introduction','Award','Intermission','Break','Setup/Teardown','Opening','Closing','Other'];
+const RT=['Improv','Sketch','Video','Music','Stand Up','Other'];
 function pDur(s){s=String(s||'').trim().toLowerCase();if(!s)return 0;let m;
   if((m=s.match(/^(\d+):(\d+)$/)))return+m[1]*60+(+m[2]);
   if((m=s.match(/^(\d+)h(\d*)m?$/)))return+m[1]*60+(+m[2]||0);
@@ -955,6 +961,45 @@ function closeDrawer(){
   document.getElementById('drawer').classList.remove('open');
   document.querySelectorAll('.btab').forEach(b=>b.classList.remove('active'));
   activeDrawer=null;
+}
+
+function initTabDrag(){
+  const bar=document.getElementById('botbar');
+  let dragSrc=null;
+  function getTabs(){return [...bar.querySelectorAll('.btab')];}
+  bar.addEventListener('mousedown',e=>{
+    const tab=e.target.closest('.btab');
+    if(!tab)return;
+    // Allow clicks to still fire onclick — only start drag on mousemove
+    let dragging=false;
+    const startX=e.clientX;
+    function onMove(ev){
+      if(!dragging&&Math.abs(ev.clientX-startX)<4)return;
+      if(!dragging){
+        dragging=true;dragSrc=tab;
+        tab.classList.add('tab-drag-src');
+      }
+      getTabs().forEach(t=>t.classList.remove('tab-drop-target'));
+      const over=document.elementFromPoint(ev.clientX,ev.clientY)?.closest('.btab');
+      if(over&&over!==dragSrc)over.classList.add('tab-drop-target');
+    }
+    function onUp(ev){
+      document.removeEventListener('mousemove',onMove);
+      document.removeEventListener('mouseup',onUp);
+      if(!dragging)return;
+      tab.classList.remove('tab-drag-src');
+      const over=document.elementFromPoint(ev.clientX,ev.clientY)?.closest('.btab');
+      getTabs().forEach(t=>t.classList.remove('tab-drop-target'));
+      if(over&&over!==dragSrc){
+        // Insert dragSrc before or after over depending on direction
+        const srcIdx=getTabs().indexOf(dragSrc),tgtIdx=getTabs().indexOf(over);
+        if(srcIdx<tgtIdx)over.after(dragSrc);else over.before(dragSrc);
+      }
+      dragSrc=null;dragging=false;
+    }
+    document.addEventListener('mousemove',onMove);
+    document.addEventListener('mouseup',onUp);
+  });
 }
 
 // ═══════════════════════ BUDGET ══════════════════════════
@@ -1356,6 +1401,8 @@ async function loadColLayout(){
   // Remove all children, rebuild in saved order with resizers between
   main.innerHTML='';
   const validItems=layout.filter(item=>panels[item.id]);
+  // Append any panels not present in saved layout (e.g. newly added columns)
+  Object.keys(panels).forEach(id=>{if(!validItems.find(i=>i.id===id))validItems.push({id,w:''});});
   validItems.forEach((item,i)=>{
     const p=panels[item.id];
     if(item.w){p.style.flex='none';p.style.width=item.w;}
@@ -1395,6 +1442,7 @@ async function init(){
 
   // Column resize + drag (loadColLayout calls initColResize + initColDrag internally)
   await loadColLayout();
+  initTabDrag();
 
   fetchCal();
   setInd('saved');
