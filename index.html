@@ -102,6 +102,11 @@ a{color:inherit;text-decoration:none}
 body.col-dragging #cal-split-hint{border-color:var(--accent);opacity:1;background:rgba(124,111,255,.08);color:var(--accent)}
 #cal-split-zone.drag-over #cal-split-hint{border-color:var(--teal);background:rgba(0,212,170,.1);color:var(--teal);opacity:1}
 #cal-split-content{display:none;flex:1;flex-direction:column;overflow:hidden;min-height:60px}
+/* Strip right borders from anything docked in the split — col-cal's border is the boundary */
+#cal-split-content .panel,
+#cal-split-content .ch,
+#cal-split-content #ros-body-wrap,
+#cal-split-content #ros-add{border-right:none}
 
 /* Notes panel */
 #notes-ed{flex:1;background:transparent;border:none;color:var(--text);padding:8px 10px;font-family:'Courier New',monospace;font-size:.76rem;resize:none;outline:none;line-height:1.55;overflow-y:auto}
