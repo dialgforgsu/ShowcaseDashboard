@@ -21,14 +21,24 @@ input,select,textarea,button{font-family:inherit}
 a{color:inherit;text-decoration:none}
 
 /* ── HEADER ── */
-#hdr{height:var(--hdr);background:linear-gradient(135deg,#1a0a3e,#0d1a3e 50%,#0d2a2a);border-bottom:1px solid var(--border);padding:10px 20px 8px;text-align:center;flex-shrink:0;box-shadow:0 4px 20px rgba(0,0,0,.5)}
-#hdr h1{font-size:1.15rem;font-weight:700;letter-spacing:2px;text-transform:uppercase}
+#hdr{height:var(--hdr);background:linear-gradient(135deg,#1a0a3e,#0d1a3e 50%,#0d2a2a);border-bottom:1px solid var(--border);padding:8px 16px 6px;flex-shrink:0;box-shadow:0 4px 20px rgba(0,0,0,.5);display:flex;align-items:center;gap:12px}
+#hdr-center{flex:1;text-align:center}
+#hdr h1{font-size:1.1rem;font-weight:700;letter-spacing:2px;text-transform:uppercase}
 #hdr h1 span{color:var(--accent)}
-#countdown{display:flex;justify-content:center;gap:7px;margin-top:6px}
-.cd-unit{background:rgba(124,111,255,.12);border:1px solid rgba(124,111,255,.3);border-radius:8px;padding:4px 12px;min-width:68px;text-align:center}
-.cd-num{font-size:1.45rem;font-weight:700;color:var(--accent);line-height:1;display:block}
-.cd-label{font-size:.56rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
-#cd-sub{font-size:.68rem;color:var(--muted);margin-top:3px}
+#countdown{display:flex;justify-content:center;gap:6px;margin-top:5px}
+.cd-unit{background:rgba(124,111,255,.12);border:1px solid rgba(124,111,255,.3);border-radius:8px;padding:3px 10px;min-width:62px;text-align:center}
+.cd-num{font-size:1.3rem;font-weight:700;color:var(--accent);line-height:1;display:block}
+.cd-label{font-size:.54rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+#cd-sub{font-size:.65rem;color:var(--muted);margin-top:2px}
+/* header stats panel */
+#hdr-stats{display:flex;flex-direction:column;gap:4px;flex-shrink:0;min-width:180px}
+.hstat-row{display:flex;gap:5px;justify-content:flex-end;flex-wrap:wrap}
+.hstat{background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:6px;padding:3px 8px;text-align:center;min-width:72px}
+.hstat-lbl{font-size:.54rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.hstat-val{font-size:.82rem;font-weight:700;margin-top:1px}
+.hstat-val.ok{color:var(--teal)}
+.hstat-val.wn{color:var(--gold)}
+.hstat-val.ov{color:var(--coral)}
 
 /* ── TOOLBAR ── */
 #bar{height:var(--bar);background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px;padding:0 16px;flex-shrink:0;overflow-x:auto}
@@ -46,18 +56,32 @@ a{color:inherit;text-decoration:none}
 #save-ind.saving{color:var(--gold)}
 .bar-sep{width:1px;height:18px;background:var(--border);flex-shrink:0;margin:0 2px}
 
-/* ── MAIN 4-COLUMN GRID ── */
-#main{display:grid;grid-template-columns:200px 220px 1fr 210px;height:var(--main);overflow:hidden}
+/* ── MAIN PANEL CONTAINER ── */
+#main{display:flex;height:var(--main);overflow:hidden;position:relative}
 
-/* Column borders */
-#col-cal{border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
-#col-trello{border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
-#col-ros{border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
-#col-tasks{display:flex;flex-direction:column;overflow:hidden}
+/* Panels */
+.panel{display:flex;flex-direction:column;overflow:hidden;position:relative;min-width:120px}
+#col-cal{width:200px}
+#col-trello{width:220px}
+#col-ros{flex:1;min-width:200px}
+#col-tasks{width:210px}
+
+/* Resize handle between columns */
+.col-resizer{width:5px;flex-shrink:0;background:var(--border);cursor:col-resize;transition:background .15s;position:relative;z-index:10}
+.col-resizer:hover,.col-resizer.dragging{background:var(--accent)}
+.col-resizer::after{content:'';position:absolute;inset:-4px 0;} /* wider hit area */
+
+/* Drag-to-reorder */
+.panel.col-drag-src{opacity:.45}
+.panel.col-drop-target{outline:2px dashed var(--accent);outline-offset:-2px}
 
 /* Column headers */
-.ch{padding:6px 10px;background:var(--card);border-bottom:1px solid var(--border);font-size:.69rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:4px}
+.ch{padding:6px 10px;background:var(--card);border-bottom:1px solid var(--border);border-right:1px solid var(--border);font-size:.69rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:4px;user-select:none}
 .ch-acts{display:flex;gap:4px;align-items:center}
+/* drag grip on column header */
+.ch-grip{cursor:grab;color:var(--muted);font-size:.85rem;padding:0 3px;opacity:.5;flex-shrink:0}
+.ch-grip:hover{opacity:1;color:var(--accent)}
+.ch-grip:active{cursor:grabbing}
 
 /* ── CALENDAR ── */
 #cal-list{flex:1;overflow-y:auto;padding:6px}
@@ -101,7 +125,8 @@ a{color:inherit;text-decoration:none}
 .tl-open:hover{opacity:.85}
 
 /* ── RUN OF SHOW ── */
-#ros-body-wrap{flex:1;overflow:auto;padding:6px 12px}
+#ros-body-wrap{flex:1;overflow:auto;padding:6px 12px;border-right:1px solid var(--border)}
+#ros-add{padding:6px 12px;border-right:1px solid var(--border);border-top:1px solid var(--border);flex-shrink:0;background:var(--card)}
 #ros-table{width:100%;border-collapse:collapse;font-size:.74rem;min-width:560px}
 #ros-table th{padding:5px 7px;text-align:left;font-size:.63rem;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border);background:var(--card);white-space:nowrap;position:sticky;top:0;z-index:1}
 #ros-table td{padding:0;border-bottom:1px solid var(--border);vertical-align:middle}
@@ -315,13 +340,27 @@ td.bc select option{background:var(--card2)}
 
 <!-- HEADER -->
 <div id="hdr">
-  <h1>YWA <span>Showcase Event</span> — Planning Dashboard</h1>
-  <div id="countdown">
-    <div class="cd-unit"><span class="cd-num" id="cd-d">--</span><span class="cd-label">Days</span></div>
-    <div class="cd-unit"><span class="cd-num" id="cd-h">--</span><span class="cd-label">Hours</span></div>
-    <div class="cd-unit"><span class="cd-num" id="cd-m">--</span><span class="cd-label">Minutes</span></div>
+  <div id="hdr-center">
+    <h1>YWA <span>Showcase Event</span> — Planning Dashboard</h1>
+    <div id="countdown">
+      <div class="cd-unit"><span class="cd-num" id="cd-d">--</span><span class="cd-label">Days</span></div>
+      <div class="cd-unit"><span class="cd-num" id="cd-h">--</span><span class="cd-label">Hours</span></div>
+      <div class="cd-unit"><span class="cd-num" id="cd-m">--</span><span class="cd-label">Minutes</span></div>
+    </div>
+    <div id="cd-sub">Until Showcase Event · May 8, 2027</div>
   </div>
-  <div id="cd-sub">Until Showcase Event · May 8, 2027</div>
+  <div id="hdr-stats">
+    <div class="hstat-row">
+      <div class="hstat"><div class="hstat-lbl">Budget Est.</div><div class="hstat-val wn" id="hs-est">$0</div></div>
+      <div class="hstat"><div class="hstat-lbl">Actual Spent</div><div class="hstat-val" id="hs-act">$0</div></div>
+      <div class="hstat"><div class="hstat-lbl">Remaining</div><div class="hstat-val ok" id="hs-rem">—</div></div>
+    </div>
+    <div class="hstat-row">
+      <div class="hstat"><div class="hstat-lbl">Confirmed</div><div class="hstat-val ok" id="hs-conf">0</div></div>
+      <div class="hstat"><div class="hstat-lbl">Pending</div><div class="hstat-val wn" id="hs-pend">0</div></div>
+      <div class="hstat"><div class="hstat-lbl">Capacity</div><div class="hstat-val" id="hs-cap">—</div></div>
+    </div>
+  </div>
 </div>
 
 <!-- TOOLBAR -->
@@ -335,51 +374,58 @@ td.bc select option{background:var(--card2)}
   <span id="save-ind" class="saved">● saved</span>
 </div>
 
-<!-- MAIN 4 COLUMNS -->
+<!-- MAIN PANELS -->
 <div id="main">
 
   <!-- COL 1: Calendar + Notes -->
-  <div id="col-cal">
-    <div class="ch">📅 Next 5 Events
+  <div id="col-cal" class="panel" data-col="cal">
+    <div class="ch" data-drag-col="cal">
+      <span class="ch-grip" title="Drag to reorder">⠿</span>📅 Next 5 Events
       <div class="ch-acts">
         <button class="btn sm" onclick="fetchCal()">🔄</button>
         <button class="btn sm" id="btn-cal-all" onclick="toggleCalAll()">All</button>
       </div>
     </div>
-    <div id="cal-list"><div id="cal-empty">Loading…</div></div>
-
+    <div id="cal-list" style="border-right:1px solid var(--border)"><div id="cal-empty">Loading…</div></div>
     <div id="notes-pane">
-      <div class="ch" style="border-top:1px solid var(--border)">📝 Notes
+      <div class="ch" style="border-top:1px solid var(--border)" data-drag-col="cal">
+        <span class="ch-grip">⠿</span>📝 Notes
         <div class="ch-acts">
           <button class="btn sm" id="btn-ne" onclick="setNoteMode('edit')">Edit</button>
           <button class="btn sm" id="btn-np" onclick="setNoteMode('preview')">Preview</button>
         </div>
       </div>
-      <textarea id="notes-ed" placeholder="# Notes&#10;&#10;Markdown supported…"></textarea>
-      <div id="notes-pv"></div>
+      <textarea id="notes-ed" placeholder="# Notes&#10;&#10;Markdown supported…" style="border-right:1px solid var(--border)"></textarea>
+      <div id="notes-pv" style="border-right:1px solid var(--border)"></div>
     </div>
   </div>
 
+  <div class="col-resizer" data-between="cal,trello"></div>
+
   <!-- COL 2: Trello (compact) -->
-  <div id="col-trello">
-    <div class="ch">📋 Trello
+  <div id="col-trello" class="panel" data-col="trello">
+    <div class="ch" data-drag-col="trello">
+      <span class="ch-grip" title="Drag to reorder">⠿</span>📋 Trello
       <div class="ch-acts">
         <button class="btn sm" onclick="fetchTrello()">🔄</button>
         <a href="https://trello.com/b/gDrNovhq/ywa-may-2024-showcase" target="_blank" class="btn sm">↗</a>
       </div>
     </div>
     <div id="trello-msg"><span id="trello-msg-text">Loading…</span></div>
-    <div id="trello-kanban"></div>
-    <div id="trello-fb" style="display:none">
+    <div id="trello-kanban" style="border-right:1px solid var(--border)"></div>
+    <div id="trello-fb" style="display:none;border-right:1px solid var(--border)">
       <svg width="32" height="32" viewBox="0 0 24 24" fill="#0052cc"><rect x="2.5" y="2.5" width="8.5" height="14" rx="1.5"/><rect x="13" y="2.5" width="8.5" height="9" rx="1.5"/></svg>
       <p>Trello couldn't be fetched.<br>Board may be private.</p>
       <a href="https://trello.com/b/gDrNovhq/ywa-may-2024-showcase" target="_blank" class="tl-open">Open Board ↗</a>
     </div>
   </div>
 
+  <div class="col-resizer" data-between="trello,ros"></div>
+
   <!-- COL 3: Run of Show -->
-  <div id="col-ros">
-    <div class="ch">🎭 Run of Show
+  <div id="col-ros" class="panel" data-col="ros">
+    <div class="ch" data-drag-col="ros">
+      <span class="ch-grip" title="Drag to reorder">⠿</span>🎭 Run of Show
       <div class="ch-acts">
         <span id="ros-stat" style="color:var(--gold);font-size:.68rem;font-weight:600">0:00</span>
         <label style="font-size:.65rem;color:var(--muted)">Start:</label>
@@ -403,9 +449,14 @@ td.bc select option{background:var(--card2)}
     <div id="ros-add"><button class="btn primary sm" onclick="addAct()">+ Add Act</button></div>
   </div>
 
+  <div class="col-resizer" data-between="ros,tasks"></div>
+
   <!-- COL 4: Tasks -->
-  <div id="col-tasks">
-    <div class="ch">✅ Tasks <span id="tcnt" style="color:var(--teal);font-size:.68rem;font-weight:700;margin-left:3px"></span></div>
+  <div id="col-tasks" class="panel" data-col="tasks">
+    <div class="ch" data-drag-col="tasks">
+      <span class="ch-grip" title="Drag to reorder">⠿</span>✅ Tasks
+      <span id="tcnt" style="color:var(--teal);font-size:.68rem;font-weight:700;margin-left:3px"></span>
+    </div>
     <div id="task-add">
       <input id="ti-text" type="text" placeholder="New task…" onkeydown="if(event.key==='Enter')addTask()">
       <input id="ti-tags" type="text" placeholder="@tag…" title="Tags comma-sep">
@@ -839,6 +890,10 @@ function updateBudTotals(){
     <div class="bud-card"><div class="bud-lbl">Actual</div><div class="bud-val ${act>tot&&tot>0?'ov':'wn'}">$${act.toFixed(0)}</div></div>
     <div class="bud-card"><div class="bud-lbl">Remaining</div><div class="bud-val ${rem<0?'ov':rem<tot*0.1?'wn':'ok'}">${rem>=0?'$'+rem.toFixed(0):'-$'+Math.abs(rem).toFixed(0)}</div></div>`;
   document.getElementById('bx-budget').textContent='$'+act.toFixed(0);
+  // Update header stats
+  const hsEst=document.getElementById('hs-est');if(hsEst)hsEst.textContent='$'+est.toFixed(0);
+  const hsAct=document.getElementById('hs-act');if(hsAct){hsAct.textContent='$'+act.toFixed(0);hsAct.className='hstat-val '+(act>tot&&tot>0?'ov':'wn');}
+  const hsRem=document.getElementById('hs-rem');if(hsRem){hsRem.textContent=tot>0?(rem>=0?'$'+rem.toFixed(0):'-$'+Math.abs(rem).toFixed(0)):'—';hsRem.className='hstat-val '+(rem<0?'ov':rem<tot*0.1&&tot>0?'wn':'ok');}
   renderBudBody();
 }
 function renderBudget(){document.getElementById('bud-tot-in').value=S.budget.total||'';updateBudTotals();}
@@ -933,6 +988,10 @@ function renderTickets(){
     <div class="tcard"><div class="tclbl">Pend.</div><div class="tcval pend">${pend}</div></div>
     <div class="tcard"><div class="tclbl">Decl.</div><div class="tcval decl">${decl}</div></div>
     <div class="tcard"><div class="tclbl">Left</div><div class="tcval">${cap?cap-conf:'—'}</div></div>`;
+  // Update header stats
+  const hsConf=document.getElementById('hs-conf');if(hsConf)hsConf.textContent=conf;
+  const hsPend=document.getElementById('hs-pend');if(hsPend)hsPend.textContent=pend;
+  const hsCap=document.getElementById('hs-cap');if(hsCap)hsCap.textContent=cap||'—';
   const pct=cap?Math.min(100,Math.round(conf/cap*100)):0;
   document.getElementById('tix-fill').style.width=pct+'%';
   document.getElementById('tix-fill').className='tix-cap-fill'+(pct>=90?' warn':'');
@@ -1098,6 +1157,135 @@ function eA(s){return String(s||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;')
 function dlTxt(c,f){const b=new Blob([c],{type:'text/markdown'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=f;a.click();URL.revokeObjectURL(u);}
 function showToast(msg,type=''){const t=document.getElementById('toast');t.textContent=msg;t.className='show '+(type||'');setTimeout(()=>t.className='',3000);}
 
+// ═══════════════════════ COLUMN RESIZE ═══════════════════
+function initColResize(){
+  document.querySelectorAll('.col-resizer').forEach(handle=>{
+    handle.addEventListener('mousedown',e=>{
+      e.preventDefault();
+      const prev=handle.previousElementSibling;
+      const next=handle.nextElementSibling;
+      if(!prev||!next)return;
+      const startX=e.clientX;
+      const prevW=prev.getBoundingClientRect().width;
+      const nextW=next.getBoundingClientRect().width;
+      handle.classList.add('dragging');
+      const minW=100;
+      function onMove(e){
+        const dx=e.clientX-startX;
+        const nPrev=Math.max(minW,prevW+dx);
+        const nNext=Math.max(minW,nextW-dx);
+        // Only resize if both stay above min
+        if(prevW+dx>=minW&&nextW-dx>=minW){
+          // Use flex-basis for flex items; for col-ros (flex:1) use width
+          if(prev.id==='col-ros'){prev.style.flex='none';prev.style.width=nPrev+'px';}
+          else{prev.style.flex='none';prev.style.width=nPrev+'px';}
+          if(next.id==='col-ros'){next.style.flex='none';next.style.width=nNext+'px';}
+          else{next.style.flex='none';next.style.width=nNext+'px';}
+        }
+      }
+      function onUp(){
+        handle.classList.remove('dragging');
+        document.removeEventListener('mousemove',onMove);
+        document.removeEventListener('mouseup',onUp);
+        // Persist col widths
+        saveColLayout();
+      }
+      document.addEventListener('mousemove',onMove);
+      document.addEventListener('mouseup',onUp);
+    });
+  });
+}
+
+// ═══════════════════════ COLUMN DRAG/REORDER ═════════════
+let colDragSrc=null;
+function initColDrag(){
+  document.querySelectorAll('[data-drag-col]').forEach(grip=>{
+    grip.addEventListener('mousedown',e=>{
+      // Only start drag from the grip icon itself or the header (not buttons/inputs)
+      if(e.target.closest('button,a,input,select'))return;
+      const colId=grip.dataset.dragCol;
+      const panel=document.getElementById('col-'+colId);
+      if(!panel)return;
+      e.preventDefault();
+      colDragSrc=colId;
+      panel.classList.add('col-drag-src');
+      const ghost=panel.cloneNode(false);
+      ghost.id='col-ghost';
+      ghost.style.cssText=`position:fixed;width:${panel.offsetWidth}px;height:${panel.offsetHeight}px;opacity:.25;pointer-events:none;background:var(--accent);border-radius:4px;z-index:500;top:${e.clientY-20}px;left:${e.clientX-40}px`;
+      document.body.appendChild(ghost);
+
+      function onMove(e){
+        ghost.style.left=(e.clientX-40)+'px';
+        ghost.style.top=(e.clientY-20)+'px';
+        // Highlight drop target
+        document.querySelectorAll('.panel').forEach(p=>p.classList.remove('col-drop-target'));
+        const over=document.elementFromPoint(e.clientX,e.clientY)?.closest('.panel');
+        if(over&&over.dataset.col!==colDragSrc)over.classList.add('col-drop-target');
+      }
+      function onUp(e){
+        ghost.remove();
+        panel.classList.remove('col-drag-src');
+        const target=document.elementFromPoint(e.clientX,e.clientY)?.closest('.panel');
+        document.querySelectorAll('.panel').forEach(p=>p.classList.remove('col-drop-target'));
+        if(target&&target.dataset.col&&target.dataset.col!==colDragSrc){
+          swapCols(colDragSrc,target.dataset.col);
+        }
+        colDragSrc=null;
+        document.removeEventListener('mousemove',onMove);
+        document.removeEventListener('mouseup',onUp);
+      }
+      document.addEventListener('mousemove',onMove);
+      document.addEventListener('mouseup',onUp);
+    });
+  });
+}
+
+function swapCols(aId,bId){
+  const main=document.getElementById('main');
+  const a=document.getElementById('col-'+aId);
+  const b=document.getElementById('col-'+bId);
+  if(!a||!b)return;
+  // Find their resizer siblings
+  const aNext=a.nextElementSibling; // resizer after a
+  const bNext=b.nextElementSibling; // resizer after b
+  const aResizer=aNext?.classList.contains('col-resizer')?aNext:a.previousElementSibling?.classList.contains('col-resizer')?a.previousElementSibling:null;
+  const bResizer=bNext?.classList.contains('col-resizer')?bNext:b.previousElementSibling?.classList.contains('col-resizer')?b.previousElementSibling:null;
+  // Simple swap: insert a before b, and b where a was
+  const aPlaceholder=document.createComment('a');
+  const bPlaceholder=document.createComment('b');
+  a.replaceWith(aPlaceholder);
+  b.replaceWith(bPlaceholder);
+  aPlaceholder.replaceWith(b);
+  bPlaceholder.replaceWith(a);
+  saveColLayout();
+}
+
+function saveColLayout(){
+  const order=[...document.querySelectorAll('#main .panel')].map(p=>({id:p.dataset.col,w:p.style.width||''}));
+  dbP('colLayout',order).catch(()=>{});
+}
+
+async function loadColLayout(){
+  const layout=await dbG('colLayout').catch(()=>null);
+  if(!layout||!layout.length){initColResize();initColDrag();return;}
+  const main=document.getElementById('main');
+  const panels={};
+  document.querySelectorAll('#main .panel').forEach(p=>panels[p.dataset.col]=p);
+  // Remove all children, rebuild in saved order with resizers between
+  main.innerHTML='';
+  const validItems=layout.filter(item=>panels[item.id]);
+  validItems.forEach((item,i)=>{
+    const p=panels[item.id];
+    if(item.w){p.style.flex='none';p.style.width=item.w;}
+    main.appendChild(p);
+    if(i<validItems.length-1){
+      const r=document.createElement('div');r.className='col-resizer';main.appendChild(r);
+    }
+  });
+  initColResize();
+  initColDrag();
+}
+
 // ═══════════════════════ INIT ════════════════════════════
 async function init(){
   await openDB();
@@ -1123,8 +1311,8 @@ async function init(){
   tick();setInterval(tick,30000);
   document.getElementById('notes-ed').addEventListener('input',onNotesChange);
 
-  // Show budget drawer by default (first tab)
-  openDrawer('budget',document.getElementById('bt-budget'));
+  // Column resize + drag (loadColLayout calls initColResize + initColDrag internally)
+  await loadColLayout();
 
   fetchCal();fetchTrello();
   setInd('saved');
