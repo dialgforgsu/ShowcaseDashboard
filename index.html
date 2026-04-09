@@ -61,10 +61,9 @@ a{color:inherit;text-decoration:none}
 
 /* Panels */
 .panel{display:flex;flex-direction:column;overflow:hidden;position:relative;min-width:120px}
-#col-cal{width:200px}
-#col-trello{width:220px}
+#col-cal{width:220px}
 #col-ros{flex:1;min-width:200px}
-#col-tasks{width:210px}
+#col-tasks{width:220px}
 
 /* Resize handle between columns */
 .col-resizer{width:5px;flex-shrink:0;background:var(--border);cursor:col-resize;transition:background .15s;position:relative;z-index:10}
@@ -104,10 +103,10 @@ a{color:inherit;text-decoration:none}
 #notes-pv a{color:var(--accent)}
 #notes-pv hr{border:none;border-top:1px solid var(--border);margin:7px 0}
 
-/* ── TRELLO (compact) ── */
-#trello-kanban{flex:1;display:flex;gap:6px;overflow-x:auto;overflow-y:hidden;padding:6px;align-items:flex-start}
+/* ── TRELLO (drawer) ── */
+#trello-kanban{flex:1;display:flex;gap:8px;overflow-x:auto;overflow-y:hidden;padding:10px;align-items:flex-start}
 #trello-kanban::-webkit-scrollbar{height:4px}
-.tl-list{min-width:130px;max-width:130px;background:var(--card2);border-radius:7px;padding:6px;border:1px solid var(--border);flex-shrink:0;display:flex;flex-direction:column;max-height:100%}
+.tl-list{min-width:170px;max-width:200px;background:var(--card2);border-radius:7px;padding:8px;border:1px solid var(--border);flex-shrink:0;display:flex;flex-direction:column;max-height:100%}
 .tl-list-title{font-size:.66rem;font-weight:700;margin-bottom:5px;color:var(--text);display:flex;justify-content:space-between}
 .tl-list-cnt{color:var(--muted);font-weight:400}
 .tl-cards{overflow-y:auto;flex:1}
@@ -118,9 +117,7 @@ a{color:inherit;text-decoration:none}
 .tl-label{padding:1px 4px;border-radius:2px;font-size:.6rem;font-weight:600}
 .tl-due{font-size:.6rem;color:var(--gold);margin-top:1px}
 .tl-due.ov{color:var(--coral)}
-#trello-msg{padding:8px 10px;font-size:.73rem;color:var(--muted);flex-shrink:0;border-bottom:1px solid var(--border);display:none;align-items:center;gap:6px}
-#trello-fb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:16px;text-align:center}
-#trello-fb p{color:var(--muted);font-size:.76rem;max-width:180px;line-height:1.4}
+#trello-msg{padding:8px 14px;font-size:.76rem;color:var(--muted);flex-shrink:0;border-bottom:1px solid var(--border);align-items:center;gap:6px}
 .tl-open{background:#0052cc;color:#fff;padding:7px 14px;border-radius:6px;font-size:.76rem;font-weight:600;border:none;cursor:pointer;text-decoration:none;display:inline-block}
 .tl-open:hover{opacity:.85}
 
@@ -400,27 +397,7 @@ td.bc select option{background:var(--card2)}
     </div>
   </div>
 
-  <div class="col-resizer" data-between="cal,trello"></div>
-
-  <!-- COL 2: Trello (compact) -->
-  <div id="col-trello" class="panel" data-col="trello">
-    <div class="ch" data-drag-col="trello">
-      <span class="ch-grip" title="Drag to reorder">⠿</span>📋 Trello
-      <div class="ch-acts">
-        <button class="btn sm" onclick="fetchTrello()">🔄</button>
-        <a href="https://trello.com/b/gDrNovhq/ywa-may-2024-showcase" target="_blank" class="btn sm">↗</a>
-      </div>
-    </div>
-    <div id="trello-msg"><span id="trello-msg-text">Loading…</span></div>
-    <div id="trello-kanban" style="border-right:1px solid var(--border)"></div>
-    <div id="trello-fb" style="display:none;border-right:1px solid var(--border)">
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="#0052cc"><rect x="2.5" y="2.5" width="8.5" height="14" rx="1.5"/><rect x="13" y="2.5" width="8.5" height="9" rx="1.5"/></svg>
-      <p>Trello couldn't be fetched.<br>Board may be private.</p>
-      <a href="https://trello.com/b/gDrNovhq/ywa-may-2024-showcase" target="_blank" class="tl-open">Open Board ↗</a>
-    </div>
-  </div>
-
-  <div class="col-resizer" data-between="trello,ros"></div>
+  <div class="col-resizer" data-between="cal,ros"></div>
 
   <!-- COL 3: Run of Show -->
   <div id="col-ros" class="panel" data-col="ros">
@@ -480,6 +457,7 @@ td.bc select option{background:var(--card2)}
   <div class="btab"        id="bt-team"    onclick="openDrawer('team',this)">👥 Team <span class="bx" id="bx-team">0</span></div>
   <div class="btab"        id="bt-av"      onclick="openDrawer('av',this)">🎛 Tech/AV</div>
   <div class="btab"        id="bt-tickets" onclick="openDrawer('tickets',this)">🎟 RSVP <span class="bx" id="bx-tickets">0</span></div>
+  <div class="btab"        id="bt-trello"  onclick="openDrawer('trello',this)">📋 Trello</div>
   <div id="botbar-right">
     <span id="save-ind2" class="saved" style="font-size:.68rem;color:var(--teal)">● saved</span>
   </div>
@@ -559,6 +537,23 @@ td.bc select option{background:var(--card2)}
           <thead><tr><th>#</th><th>Name</th><th>Group</th><th>Status</th><th>Added</th><th></th></tr></thead>
           <tbody id="guests-body"></tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- trello -->
+    <div id="dr-trello" class="drawer-tab" style="display:none;flex-direction:column;height:100%">
+      <div style="display:flex;gap:6px;padding:8px 14px;border-bottom:1px solid var(--border);align-items:center;flex-shrink:0;background:var(--card2);flex-wrap:wrap">
+        <strong style="font-size:.82rem;color:var(--accent)">📋 Trello</strong>
+        <button class="btn sm" onclick="fetchTrello()">🔄 Refresh</button>
+        <a href="https://trello.com/b/gDrNovhq/ywa-may-2024-showcase" target="_blank" class="btn sm">↗ Open Board</a>
+        <button class="btn sm" onclick="closeDrawer()" style="margin-left:auto">✕</button>
+      </div>
+      <div id="trello-msg" style="display:none"><span id="trello-msg-text">Loading…</span></div>
+      <div id="trello-kanban" style="flex:1;display:flex;gap:6px;overflow-x:auto;overflow-y:hidden;padding:10px;align-items:flex-start"></div>
+      <div id="trello-fb" style="display:none;flex:1;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:24px;text-align:center">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="#0052cc"><rect x="2.5" y="2.5" width="8.5" height="14" rx="1.5"/><rect x="13" y="2.5" width="8.5" height="9" rx="1.5"/></svg>
+        <p style="color:var(--muted);font-size:.8rem;max-width:220px;line-height:1.5">Trello couldn't be fetched. Make sure your board is set to <strong>Public</strong> in Trello settings.</p>
+        <a href="https://trello.com/b/gDrNovhq/ywa-may-2024-showcase" target="_blank" class="tl-open">Open Board ↗</a>
       </div>
     </div>
   </div>
@@ -692,19 +687,18 @@ function renderTasks(){
 const ICS='https://calendar.google.com/calendar/ical/a544f517a4126784045f189a90369b9f59b8de6f4ece7bad587043b6e854751a%40group.calendar.google.com/private-1e981959dc195e02f70494798415368c/basic.ics';
 const PX='https://api.allorigins.win/raw?url=';
 async function fetchCal(){
-  document.getElementById('cal-empty').style.display='block';
-  document.getElementById('cal-empty').textContent='Fetching…';
+  // Render cached data immediately (no loading flash)
+  renderCal();
   try{
-    const r=await fetch(PX+encodeURIComponent(ICS),{cache:'no-store'});
+    const r=await fetch(PX+encodeURIComponent(ICS),{signal:AbortSignal.timeout(12000),cache:'no-store'});
     if(!r.ok)throw new Error('HTTP '+r.status);
-    S.calEvents=parseICS(await r.text());
-    await dbP('calEvents',S.calEvents);
-    renderCal();showToast(`${S.calEvents.length} events`,'success');
-  }catch(e){
-    const cached=await dbG('calEvents').catch(()=>null);
-    if(cached?.length){S.calEvents=cached;}
-    renderCal();
-  }
+    const fresh=parseICS(await r.text());
+    if(fresh.length){
+      S.calEvents=fresh;
+      await dbP('calEvents',S.calEvents);
+      renderCal();
+    }
+  }catch(e){/* silently keep cached data already shown */}
 }
 function parseICS(txt){
   const evts=[];const blocks=txt.split('BEGIN:VEVENT');blocks.shift();
@@ -747,10 +741,12 @@ const PROXIES=[
   u=>`https://thingproxy.freeboard.io/fetch/${u}`,
   u=>`https://cors-anywhere.herokuapp.com/${u}`
 ];
+const TRELLO_PAGE='https://trello.com/b/gDrNovhq/ywa-may-2024-showcase';
 async function fetchTrello(){
   const msg=document.getElementById('trello-msg'),kb=document.getElementById('trello-kanban'),fb=document.getElementById('trello-fb');
   msg.style.display='flex';msg.querySelector('#trello-msg-text').textContent='Loading board…';
   kb.innerHTML='';fb.style.display='none';
+  // --- Try JSON API via proxy chain ---
   for(const mkUrl of PROXIES){
     const url=mkUrl(TRELLO_URL);
     try{
@@ -765,7 +761,29 @@ async function fetchTrello(){
       return;
     }catch(err){continue;}
   }
-  // Try cached
+  // --- Try HTML page scrape ---
+  msg.querySelector('#trello-msg-text').textContent='Trying page scrape…';
+  const scrapeProxies=[
+    u=>`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
+    u=>`https://corsproxy.io/?${encodeURIComponent(u)}`,
+    u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`
+  ];
+  for(const mkUrl of scrapeProxies){
+    try{
+      const r=await fetch(mkUrl(TRELLO_PAGE),{signal:AbortSignal.timeout(12000)});
+      if(!r.ok)continue;
+      const raw=await r.text();
+      const html=raw.startsWith('{')?JSON.parse(raw).contents||'':raw;
+      // Trello injects board data as window.AppsConfig or __trelloServerData
+      const boardData=parseTrelloHtml(html);
+      if(boardData?.lists?.length){
+        renderTrello(boardData);msg.style.display='none';
+        await dbP('trelloBoard',{lists:boardData.lists,cards:boardData.cards,fetched:Date.now()});
+        return;
+      }
+    }catch(err){continue;}
+  }
+  // --- Try cached ---
   const cached=await dbG('trelloBoard').catch(()=>null);
   if(cached?.lists?.length){
     renderTrello(cached);
@@ -773,6 +791,68 @@ async function fetchTrello(){
     return;
   }
   msg.style.display='none';fb.style.display='flex';
+}
+function parseTrelloHtml(html){
+  // Attempt 1: window.AppsConfig / __REDUX_STATE__ / preloaded JSON blobs
+  const patterns=[
+    /window\.__trelloServerData\s*=\s*(\{.+?\})(?=;\s*<\/script)/s,
+    /window\.AppsConfig\s*=\s*(\{.+?\})(?=;\s*<\/script)/s,
+    /"lists"\s*:\s*(\[[\s\S]+?\])/,
+  ];
+  for(const re of patterns){
+    const m=html.match(re);
+    if(!m)continue;
+    try{
+      const obj=JSON.parse(m[1]);
+      // Could be nested — search for lists/cards
+      const found=extractBoardData(obj);
+      if(found?.lists?.length)return found;
+    }catch{}
+  }
+  // Attempt 2: find any large JSON blob containing "lists" and "cards"
+  const scripts=html.match(/<script[^>]*>([\s\S]*?)<\/script>/g)||[];
+  for(const sc of scripts){
+    const inner=sc.replace(/<\/?script[^>]*>/g,'');
+    if(!inner.includes('"lists"')||!inner.includes('"cards"'))continue;
+    const jm=inner.match(/(\{[\s\S]+\})/);
+    if(!jm)continue;
+    try{
+      const obj=JSON.parse(jm[1]);
+      const found=extractBoardData(obj);
+      if(found?.lists?.length)return found;
+    }catch{}
+  }
+  // Attempt 3: parse HTML DOM structure
+  return parseTrelloDom(html);
+}
+function extractBoardData(obj){
+  if(obj?.lists&&obj?.cards)return obj;
+  if(typeof obj!=='object'||obj===null)return null;
+  for(const k of Object.keys(obj)){
+    const r=extractBoardData(obj[k]);
+    if(r)return r;
+  }
+  return null;
+}
+function parseTrelloDom(html){
+  // Build a lightweight DOM from HTML string and walk list/card elements
+  try{
+    const dp=new DOMParser();const doc=dp.parseFromString(html,'text/html');
+    const lists=[];const cards=[];let lid=1;
+    // Trello HTML class names (public board)
+    doc.querySelectorAll('[data-testid="list"],.list,.js-list-content').forEach(listEl=>{
+      const nameEl=listEl.querySelector('[data-testid="list-name"],.list-header-name,.js-list-name-input');
+      if(!nameEl)return;
+      const id=String(lid++);
+      lists.push({id,name:nameEl.textContent.trim(),closed:false});
+      listEl.querySelectorAll('[data-testid="trello-card"],.list-card,.js-member-avatar').forEach(cardEl=>{
+        const titleEl=cardEl.querySelector('[data-testid="card-name"],.list-card-title,.js-card-name')||cardEl;
+        cards.push({id:String(Date.now()+Math.random()),idList:id,name:titleEl.textContent.trim(),closed:false,labels:[],due:null,dueComplete:false,shortLink:''});
+      });
+    });
+    if(lists.length)return{lists,cards};
+  }catch{}
+  return null;
 }
 const LC={green:'#0c5e3c',yellow:'#7a5c00',orange:'#6e3200',red:'#5c1100',purple:'#2d1a5c',blue:'#0a2d5c',sky:'#0a3f5c',lime:'#1a4a00',pink:'#5c0a36',black:'#1a1a1a'};
 function renderTrello(data){
@@ -856,7 +936,7 @@ function printROS(){
 }
 
 // ═══════════════════════ DRAWER ══════════════════════════
-let activeDrawer=null;
+let activeDrawer=null;let trelloLoaded=false;
 function openDrawer(name,el){
   const dr=document.getElementById('drawer');
   if(activeDrawer===name&&dr.classList.contains('open')){closeDrawer();return;}
@@ -868,6 +948,8 @@ function openDrawer(name,el){
   activeDrawer=name;
   // Close snap panel if open
   document.getElementById('snap-panel').classList.remove('open');
+  // Auto-load Trello the first time drawer opens
+  if(name==='trello'&&!trelloLoaded){trelloLoaded=true;fetchTrello();}
 }
 function closeDrawer(){
   document.getElementById('drawer').classList.remove('open');
@@ -1314,7 +1396,7 @@ async function init(){
   // Column resize + drag (loadColLayout calls initColResize + initColDrag internally)
   await loadColLayout();
 
-  fetchCal();fetchTrello();
+  fetchCal();
   setInd('saved');
 }
 
