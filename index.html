@@ -73,7 +73,6 @@ body.light #theme-btn:hover{background:var(--card2)}
 /* Panels */
 .panel{display:flex;flex-direction:column;overflow:hidden;position:relative;min-width:120px;border-right:1px solid var(--border)}
 #col-cal{width:180px}
-#col-notes{width:180px}
 #col-ros{flex:1;min-width:200px}
 #col-tasks{width:220px}
 
@@ -373,6 +372,47 @@ td.bc select option{background:var(--card2)}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
 ::-webkit-scrollbar-thumb:hover{background:var(--accent2)}
+
+/* ── MOBILE ── */
+@media (max-width:768px){
+  :root{--hdr:auto;--bar:auto}
+  html,body{height:auto;overflow:auto}
+  body{display:flex;flex-direction:column;min-height:100vh}
+  #hdr{height:auto;flex-wrap:wrap;padding:6px 10px;gap:6px;position:sticky;top:0;z-index:80}
+  #hdr-stats{display:none}
+  #hdr-center{min-width:0;flex:1 1 auto}
+  #hdr h1{font-size:.85rem;letter-spacing:1px}
+  #countdown{gap:3px;margin-top:4px}
+  .cd-unit{min-width:44px;padding:2px 4px}
+  .cd-num{font-size:.95rem}
+  .cd-label{font-size:.48rem}
+  #bar{height:auto;flex-wrap:wrap;padding:5px 8px;gap:4px;position:sticky;top:0;z-index:79}
+  #main{height:auto !important;flex:1;min-height:0;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}
+  .panel{flex-shrink:0 !important}
+  #col-cal{width:200px}
+  #col-ros{min-width:320px;flex:0 0 85vw !important}
+  #col-tasks{width:260px}
+  .col-resizer{display:none}
+  .ch-grip{display:none}
+  #ros-body-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  #botbar{overflow-x:auto;-webkit-overflow-scrolling:touch;position:sticky;bottom:0;z-index:80}
+  #botbar::-webkit-scrollbar{height:0}
+  #drawer{bottom:var(--bot)}
+  #drawer.open{height:55vh}
+  #snap-panel.open{height:75vh}
+  #snap-body{grid-template-columns:1fr;grid-template-rows:130px 1fr}
+  #snap-list{border-right:none;border-bottom:1px solid var(--border)}
+  #modal{width:calc(100vw - 32px)}
+  #toast{right:8px;left:8px;text-align:center}
+  .tmcard{width:calc(50% - 4px)}
+}
+@media (max-width:480px){
+  #hdr-center{flex:1 1 100%;order:-1}
+  #theme-btn{order:1}
+  #hdr h1{font-size:.8rem}
+  #bar .btn{font-size:.7rem;padding:3px 7px}
+  .btab{padding:0 10px;font-size:.68rem}
+}
 </style>
 </head>
 <body style="display:flex;flex-direction:column">
@@ -438,22 +478,7 @@ td.bc select option{background:var(--card2)}
     </div>
   </div>
 
-  <div class="col-resizer" data-between="cal,notes"></div>
-
-  <!-- COL 1b: Notes -->
-  <div id="col-notes" class="panel" data-col="notes">
-    <div class="ch" data-drag-col="notes">
-      <span class="ch-grip" title="Drag to reorder">⠿</span>📝 Notes
-      <div class="ch-acts">
-        <button class="btn sm" id="btn-ne" onclick="setNoteMode('edit')">Edit</button>
-        <button class="btn sm" id="btn-np" onclick="setNoteMode('preview')">Preview</button>
-      </div>
-    </div>
-    <textarea id="notes-ed" placeholder="# Notes&#10;&#10;Markdown supported…"></textarea>
-    <div id="notes-pv"></div>
-  </div>
-
-  <div class="col-resizer" data-between="notes,ros"></div>
+  <div class="col-resizer" data-between="cal,ros"></div>
 
   <!-- COL 3: Run of Show -->
   <div id="col-ros" class="panel" data-col="ros">
@@ -515,6 +540,7 @@ td.bc select option{background:var(--card2)}
   <div class="btab"        id="bt-av"      onclick="openDrawer('av',this)">🎛 Tech/AV</div>
   <div class="btab"        id="bt-tickets" onclick="openDrawer('tickets',this)">🎟 RSVP <span class="bx" id="bx-tickets">0</span></div>
   <div class="btab"        id="bt-trello"  onclick="openDrawer('trello',this)">📋 Trello</div>
+  <div class="btab"        id="bt-notes"   onclick="openDrawer('notes',this)">📝 Notes</div>
   <div id="botbar-right">
     <span id="save-ind2" class="saved" style="font-size:.68rem;color:var(--teal)">● saved</span>
   </div>
@@ -595,6 +621,18 @@ td.bc select option{background:var(--card2)}
           <tbody id="guests-body"></tbody>
         </table>
       </div>
+    </div>
+
+    <!-- notes -->
+    <div id="dr-notes" class="drawer-tab" style="display:none;flex-direction:column;height:100%">
+      <div style="display:flex;gap:6px;padding:8px 14px;border-bottom:1px solid var(--border);align-items:center;flex-shrink:0;background:var(--card2);flex-wrap:wrap">
+        <strong style="font-size:.82rem;color:var(--accent)">📝 Notes</strong>
+        <button class="btn sm" id="btn-ne" onclick="setNoteMode('edit')">Edit</button>
+        <button class="btn sm" id="btn-np" onclick="setNoteMode('preview')">Preview</button>
+        <button class="btn sm" onclick="closeDrawer()" style="margin-left:auto">✕</button>
+      </div>
+      <textarea id="notes-ed" placeholder="# Notes&#10;&#10;Markdown supported…"></textarea>
+      <div id="notes-pv"></div>
     </div>
 
     <!-- trello -->
