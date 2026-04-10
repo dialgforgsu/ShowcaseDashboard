@@ -342,6 +342,31 @@ td.bc select option{background:var(--card2)}
 .dc{color:var(--muted);display:block}
 .empty{text-align:center;padding:14px;color:var(--muted);font-size:.76rem}
 
+/* ── ACT NAME CELL ── */
+.act-name-cell{display:flex !important;align-items:center;gap:2px;padding:0 !important}
+.act-name-cell input{flex:1;min-width:0}
+.act-detail-btn{background:none;border:none;cursor:pointer;padding:3px 4px;color:var(--muted);opacity:0;flex-shrink:0;line-height:1;border-radius:4px;transition:opacity .12s,background .12s;display:flex;align-items:center}
+.rr:hover .act-detail-btn{opacity:.6}
+.act-detail-btn:hover{background:rgba(124,111,255,.15);opacity:1 !important}
+.act-detail-btn.has-data{opacity:.8 !important;color:var(--teal)}
+.act-detail-btn img{width:16px;height:16px;border-radius:50%;object-fit:cover}
+
+/* ── ACT DETAIL PANEL ── */
+#act-panel{position:fixed;top:0;right:-420px;width:400px;max-width:100vw;bottom:0;background:var(--card);border-left:2px solid var(--accent);z-index:350;display:flex;flex-direction:column;transition:right .28s ease;box-shadow:-4px 0 24px rgba(0,0,0,.4)}
+#act-panel.open{right:0}
+#act-panel-hdr{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-shrink:0;background:var(--card2)}
+#act-panel-title{font-size:.88rem;font-weight:700;color:var(--accent);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#act-panel-body{flex:1;overflow-y:auto;padding:14px}
+#act-panel-body label{display:block;font-size:.64rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+#act-panel-body input[type=text],#act-panel-body input[type=url],#act-panel-body textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--text);padding:6px 9px;font-size:.78rem;outline:none;font-family:inherit;margin-bottom:11px}
+#act-panel-body input:focus,#act-panel-body textarea:focus{border-color:var(--accent)}
+#act-panel-body textarea{resize:vertical;line-height:1.5}
+#act-photo-wrap{display:flex;gap:10px;align-items:flex-start;margin-bottom:11px}
+#act-photo-thumb{width:76px;height:76px;border-radius:8px;border:2px solid var(--border);background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:1.9rem;flex-shrink:0;overflow:hidden}
+#act-photo-thumb img{width:100%;height:100%;object-fit:cover}
+#act-photo-inputs{flex:1;display:flex;flex-direction:column;gap:5px}
+#act-panel-footer{padding:10px 14px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:6px;flex-shrink:0;background:var(--card2)}
+
 /* ── MODAL ── */
 #modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:300;align-items:center;justify-content:center}
 #modal-ov.open{display:flex}
@@ -687,6 +712,39 @@ td.bc select option{background:var(--card2)}
   </div>
 </div>
 
+<!-- ACT DETAIL PANEL -->
+<div id="act-panel">
+  <div id="act-panel-hdr">
+    <span id="act-panel-title">Act Details</span>
+    <button class="btn sm" onclick="saveActDetail()">Save</button>
+    <button class="btn sm" onclick="closeActDetail()">✕</button>
+  </div>
+  <div id="act-panel-body">
+    <div id="act-photo-wrap">
+      <div id="act-photo-thumb">🎭</div>
+      <div id="act-photo-inputs">
+        <label>Photo</label>
+        <input type="url" id="act-d-photo" placeholder="Paste image URL…" oninput="previewActPhoto(this.value)">
+        <label class="btn sm" style="cursor:pointer;width:fit-content;margin-bottom:0">
+          📁 Upload image
+          <input type="file" id="act-d-file" accept="image/*" style="display:none" onchange="actPhotoUpload(this)">
+        </label>
+      </div>
+    </div>
+    <label>Act Name</label>
+    <input type="text" id="act-d-name" placeholder="Act name…">
+    <label>Performers</label>
+    <input type="text" id="act-d-performers" placeholder="Performer names…">
+    <label>Bio</label>
+    <textarea id="act-d-bio" rows="6" placeholder="Enter bio or description…"></textarea>
+  </div>
+  <div id="act-panel-footer">
+    <button class="btn" onclick="closeActDetail()">Cancel</button>
+    <button class="btn primary" onclick="saveActDetail()">Save</button>
+  </div>
+</div>
+<div id="act-panel-ov" onclick="closeActDetail()" style="display:none;position:fixed;inset:0;z-index:340"></div>
+
 <!-- MODAL -->
 <div id="modal-ov" onclick="if(event.target===this)closeModal()">
   <div id="modal">
@@ -1019,7 +1077,48 @@ function delAct(id){S.ros.acts=S.ros.acts.filter(a=>a.id!==id);saveS();renderROS
 function upAct(id,f,v){
   const a=S.ros.acts.find(a=>a.id===id);if(!a)return;
   a[f]=v;
-  if(f==='duration')renderROS();else schedSave();
+  if(f==='duration')renderROS();
+  else{schedSave();if((f==='name'||f==='performers')&&activeDrawer==='av')renderAV();}
+}
+let _actDetailId=null;
+function openActDetail(id){
+  const a=S.ros.acts.find(a=>a.id===id);if(!a)return;
+  _actDetailId=id;
+  document.getElementById('act-panel-title').textContent=a.name||'Untitled Act';
+  document.getElementById('act-d-name').value=a.name||'';
+  document.getElementById('act-d-performers').value=a.performers||'';
+  document.getElementById('act-d-bio').value=a.bio||'';
+  document.getElementById('act-d-photo').value=a.photo||'';
+  previewActPhoto(a.photo||'');
+  document.getElementById('act-panel').classList.add('open');
+  document.getElementById('act-panel-ov').style.display='block';
+  setTimeout(()=>document.getElementById('act-d-name').focus(),280);
+}
+function closeActDetail(){
+  document.getElementById('act-panel').classList.remove('open');
+  document.getElementById('act-panel-ov').style.display='none';
+  _actDetailId=null;
+}
+function saveActDetail(){
+  const a=S.ros.acts.find(a=>a.id===_actDetailId);if(!a){closeActDetail();return;}
+  a.name=document.getElementById('act-d-name').value.trim();
+  a.performers=document.getElementById('act-d-performers').value.trim();
+  a.bio=document.getElementById('act-d-bio').value;
+  a.photo=document.getElementById('act-d-photo').value.trim();
+  closeActDetail();
+  saveS();renderROS();
+  if(activeDrawer==='av')renderAV();
+}
+function previewActPhoto(src){
+  const el=document.getElementById('act-photo-thumb');
+  if(src){el.innerHTML=`<img src="${eA(src)}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.innerHTML='🎭'">`;}
+  else{el.innerHTML='🎭';}
+}
+function actPhotoUpload(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{document.getElementById('act-d-photo').value=e.target.result;previewActPhoto(e.target.result);};
+  reader.readAsDataURL(file);
 }
 function upAVNote(aid,v){
   if(!S.av.matrix)S.av.matrix={};
@@ -1042,7 +1141,11 @@ function rosColCell(colId, a){
   const mins=pDur(a.duration)||0;
   const tOpts=RT.map(t=>`<option value="${t}" ${a.type===t?'selected':''}>${t}</option>`).join('');
   switch(colId){
-    case'name':    return`<td class="rc"><input value="${eA(a.name)}" placeholder="Act name…" oninput="upAct(${a.id},'name',this.value)"></td>`;
+    case'name':{
+      const hasData=!!(a.bio||a.photo||a.performers);
+      const thumb=a.photo?`<img src="${eA(a.photo)}" onerror="this.style.display='none';this.nextSibling.style.display=''"><span style="display:none">👤</span>`:'👤';
+      return`<td class="rc act-name-cell"><input value="${eA(a.name)}" placeholder="Act name…" oninput="upAct(${a.id},'name',this.value)"><button class="act-detail-btn${hasData?' has-data':''}" onclick="openActDetail(${a.id})" title="Bio &amp; Photo">${thumb}</button></td>`;
+    }
     case'duration':return`<td><div class="dur-cell"><input class="dur-num" type="number" min="1" value="${mins}" oninput="upAct(${a.id},'duration',this.value)"><div class="dur-spin"><button onclick="stepDur(${a.id},1)" tabindex="-1">▲</button><button onclick="stepDur(${a.id},-1)" tabindex="-1">▼</button></div><span class="dur-lbl">m</span></div></td>`;
     case'type':    return`<td class="rc"><select onchange="upAct(${a.id},'type',this.value)">${tOpts}</select></td>`;
     case'notes':   return`<td class="rc"><input value="${eA(a.notes||'')}" placeholder="Notes…" oninput="upAct(${a.id},'notes',this.value)"></td>`;
@@ -1905,7 +2008,7 @@ async function init(){
 
 document.addEventListener('keydown',e=>{
   if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key==='S'){e.preventDefault();openSnapModal();}
-  if(e.key==='Escape'){closeModal();document.getElementById('snap-panel').classList.remove('open');closeDrawer();}
+  if(e.key==='Escape'){closeModal();closeActDetail();document.getElementById('snap-panel').classList.remove('open');closeDrawer();}
 });
 init();
 </script>
