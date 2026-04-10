@@ -63,6 +63,8 @@ body.light #theme-btn:hover{background:var(--card2)}
 .btn.sm{font-size:.68rem;padding:3px 7px}
 .btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
 #save-ind{margin-left:auto;font-size:.68rem;color:var(--muted);flex-shrink:0}
+#global-search:focus{border-color:var(--accent)}
+.gs-hl{background:rgba(255,209,102,.35);color:inherit;border-radius:2px}
 #save-ind.saved{color:var(--teal)}
 #save-ind.saving{color:var(--gold)}
 .bar-sep{width:1px;height:18px;background:var(--border);flex-shrink:0;margin:0 2px}
@@ -221,6 +223,9 @@ td.rc select option{background:var(--card2)}
 #drawer.open{height:340px}
 #drawer-inner{height:100%;display:flex;flex-direction:column}
 #drawer-content{flex:1;overflow:auto;padding:12px 16px}
+#drawer-resize{height:6px;flex-shrink:0;background:var(--border);cursor:row-resize;transition:background .15s;position:relative;order:-1}
+#drawer-resize::after{content:'···';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:.6rem;color:var(--muted);letter-spacing:2px;pointer-events:none}
+#drawer-resize:hover,#drawer-resize.dragging{background:var(--accent)}
 
 /* ── BUDGET ── */
 #bud-summary{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
@@ -451,6 +456,15 @@ td.bc select option{background:var(--card2)}
   <a href="https://calendar.google.com/calendar/r?cid=a544f517a4126784045f189a90369b9f59b8de6f4ece7bad587043b6e854751a%40group.calendar.google.com" target="_blank" class="btn">📆 Cal</a>
   <a href="https://trello.com/b/gDrNovhq/ywa-may-2024-showcase" target="_blank" class="btn">📋 Trello ↗</a>
   <button class="btn" onclick="printROS()">🖨 Print ROS</button>
+  <div class="bar-sep"></div>
+  <div style="position:relative;flex-shrink:0;display:flex;align-items:center">
+    <input id="global-search" type="text" placeholder="🔍 Search tasks & events…"
+      style="background:var(--card2);border:1px solid var(--border);border-radius:5px;color:var(--text);padding:3px 26px 3px 8px;font-size:.73rem;outline:none;width:190px;transition:border-color .15s"
+      oninput="globalSearch(this.value)"
+      onkeydown="if(event.key==='Escape'){this.value='';globalSearch('')}">
+    <button id="gs-clear" onclick="document.getElementById('global-search').value='';globalSearch('')"
+      style="display:none;position:absolute;right:4px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem;padding:0 3px;line-height:1">✕</button>
+  </div>
   <span id="save-ind" class="saved">● saved</span>
 </div>
 
@@ -549,6 +563,7 @@ td.bc select option{background:var(--card2)}
 <!-- DRAWER -->
 <div id="drawer">
   <div id="drawer-inner">
+    <div id="drawer-resize" title="Drag to resize"></div>
     <!-- budget -->
     <div id="dr-budget" class="drawer-tab" style="display:none;flex-direction:column;height:100%">
       <div style="display:flex;gap:8px;padding:8px 14px;border-bottom:1px solid var(--border);align-items:center;flex-shrink:0;background:var(--card2);flex-wrap:wrap">
@@ -719,13 +734,13 @@ let snaps=[],cmpA=null,cmpB=null,saveTimer=null;
 // ═══════════════════════ THEME ═══════════════════════════
 function toggleTheme(){
   const light=document.body.classList.toggle('light');
-  document.getElementById('theme-btn').textContent=light?'🌑':'🌙';
+  document.getElementById('theme-btn').textContent=light?'☀️':'🌙';
   localStorage.setItem('theme',light?'light':'dark');
 }
 function applyTheme(){
   if(localStorage.getItem('theme')==='light'){
     document.body.classList.add('light');
-    document.getElementById('theme-btn').textContent='🌑';
+    document.getElementById('theme-btn').textContent='☀️';
   }
 }
 
@@ -770,6 +785,7 @@ function delTask(id){S.tasks=S.tasks.filter(t=>t.id!==id);renderTasks();schedSav
 function setTF(f,el){S.taskFilter=f;document.querySelectorAll('#task-filter .btn').forEach(b=>b.classList.remove('active'));el.classList.add('active');renderTasks();}
 function setTagFilter(tag){S.tagFilter=S.tagFilter===tag?null:tag;renderTasks();}
 function renderTasks(){
+  if(_gsActive){const q=document.getElementById('global-search');if(q&&q.value.trim())return globalSearch(q.value);}
   const done=S.tasks.filter(t=>t.done).length;
   document.getElementById('tcnt').textContent=`${done}/${S.tasks.length}`;
   document.getElementById('task-stats').textContent=`${done} of ${S.tasks.length} completed`;
@@ -988,7 +1004,7 @@ function renderTrello(data){
 }
 
 // ═══════════════════════ RUN OF SHOW ═════════════════════
-const RT=['Improv','Sketch','Video','Music','Stand Up','Other'];
+const RT=['Improv','Sketch','Video','Music','Stand Up','Host','Other'];
 const ROS_COLS={
   name:    {label:'Act',        defaultW:'160px'},
   duration:{label:'Dur (min)',  defaultW:'80px'},
@@ -1160,6 +1176,32 @@ function closeDrawer(){
   document.getElementById('drawer').classList.remove('open');
   document.querySelectorAll('.btab').forEach(b=>b.classList.remove('active'));
   activeDrawer=null;
+}
+
+function initDrawerResize(){
+  const handle=document.getElementById('drawer-resize');
+  const drawer=document.getElementById('drawer');
+  handle.addEventListener('mousedown',e=>{
+    if(!drawer.classList.contains('open'))return;
+    e.preventDefault();
+    const startY=e.clientY;
+    const startH=drawer.getBoundingClientRect().height;
+    drawer.style.transition='none';
+    handle.classList.add('dragging');
+    function onMove(ev){
+      const dy=startY-ev.clientY; // drag up = larger
+      const newH=Math.max(100,Math.min(window.innerHeight*0.88,startH+dy));
+      drawer.style.height=newH+'px';
+    }
+    function onUp(){
+      drawer.style.transition='';
+      handle.classList.remove('dragging');
+      document.removeEventListener('mousemove',onMove);
+      document.removeEventListener('mouseup',onUp);
+    }
+    document.addEventListener('mousemove',onMove);
+    document.addEventListener('mouseup',onUp);
+  });
 }
 
 function initTabDrag(){
@@ -1482,6 +1524,60 @@ function eH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').r
 function eA(s){return String(s||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
 function dlTxt(c,f){const b=new Blob([c],{type:'text/markdown'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=f;a.click();URL.revokeObjectURL(u);}
 function showToast(msg,type=''){const t=document.getElementById('toast');t.textContent=msg;t.className='show '+(type||'');setTimeout(()=>t.className='',3000);}
+function gsHl(str,term){
+  if(!term)return str;
+  const re=new RegExp('('+term.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi');
+  return str.replace(re,'<mark class="gs-hl">$1</mark>');
+}
+
+// ═══════════════════════ GLOBAL SEARCH ═══════════════════
+let _gsActive=false;
+function globalSearch(q){
+  const term=q.trim().toLowerCase();
+  const clearBtn=document.getElementById('gs-clear');
+  if(clearBtn)clearBtn.style.display=term?'block':'none';
+  if(!term){
+    if(_gsActive){_gsActive=false;renderTasks();renderCal();}
+    return;
+  }
+  _gsActive=true;
+  // ── Tasks ──
+  const matched=S.tasks.filter(t=>
+    t.text.toLowerCase().includes(term)||
+    (t.tags||[]).some(g=>g.toLowerCase().includes(term))
+  );
+  const taskBody=document.getElementById('task-body');
+  if(!matched.length){taskBody.innerHTML='<div class="empty">No matching tasks.</div>';}
+  else{taskBody.innerHTML=matched.map(t=>`<div class="ti ${t.done?'done':''}">
+    <input class="tcb" type="checkbox" ${t.done?'checked':''} onchange="toggleTask(${t.id})">
+    <div class="tm">
+      <div class="tt">${gsHl(eH(t.text),term)}</div>
+      ${(t.tags||[]).length?`<div class="ttr">${(t.tags||[]).map(tg=>`<span class="tag" style="${tgs(tg)}">${gsHl(eH(tg),term)}</span>`).join('')}</div>`:''}
+    </div>
+    <button class="tdel" onclick="delTask(${t.id})">✕</button>
+  </div>`).join('');}
+  // Update task count badge to reflect search results
+  document.getElementById('tcnt').textContent=`${matched.length} match${matched.length!==1?'es':''}`;
+  // ── Calendar ──
+  const calList=document.getElementById('cal-list');
+  const evts=S.calEvents.filter(e=>
+    e.title.toLowerCase().includes(term)||
+    (e.location||'').toLowerCase().includes(term)
+  );
+  if(!evts.length){calList.innerHTML='<div id="cal-empty">No matching events.</div>';}
+  else{
+    const fmt=d=>d?d.toLocaleDateString('en-US',{month:'short',day:'numeric',weekday:'short',hour:'2-digit',minute:'2-digit'}):'';
+    const now=new Date(),soon=new Date(now.getTime()+7*86400000),tod=new Date(now);tod.setHours(23,59,59);
+    calList.innerHTML=evts.map(e=>{
+      const cls=e.start<=tod?'today':e.start<=soon?'soon':'';
+      return`<div class="cal-evt ${cls}">
+        <div class="cal-evt-title">${gsHl(eH(e.title),term)}</div>
+        <div class="cal-evt-date">${fmt(e.start)}</div>
+        ${e.location?`<div class="cal-evt-loc">📍 ${gsHl(eH(e.location),term)}</div>`:''}
+      </div>`;
+    }).join('');
+  }
+}
 
 // ═══════════════════════ COLUMN RESIZE ═══════════════════
 function initColResize(){
@@ -1801,6 +1897,7 @@ async function init(){
   await loadColLayout();
   initTabDrag();
   initCalVSplit();
+  initDrawerResize();
 
   fetchCal();
   setInd('saved');
