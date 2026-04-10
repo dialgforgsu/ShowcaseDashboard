@@ -149,15 +149,18 @@ body.col-dragging #cal-split-hint{border-color:var(--accent);opacity:1;backgroun
 /* ── RUN OF SHOW ── */
 #ros-body-wrap{flex:1;overflow:auto;padding:6px 12px;border-right:1px solid var(--border)}
 #ros-add{padding:6px 12px;border-right:1px solid var(--border);border-top:1px solid var(--border);flex-shrink:0;background:var(--card)}
-#ros-table{width:100%;border-collapse:collapse;font-size:.74rem;min-width:400px}
+#ros-table{width:100%;border-collapse:collapse;font-size:.74rem;min-width:400px;table-layout:fixed}
 #ros-table th{padding:5px 7px;text-align:left;font-size:.63rem;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border);background:var(--card);white-space:nowrap;position:sticky;top:0;z-index:1;position:relative;user-select:none}
 #ros-table th.ros-col-drag{cursor:grab}
 #ros-table th.ros-col-drag:active{cursor:grabbing}
 #ros-table th.ros-col-dragging{opacity:.4;background:var(--accent2)}
 #ros-table th.ros-col-over{outline:2px solid var(--accent);outline-offset:-2px}
 #ros-table td{padding:0;border-bottom:1px solid var(--border);vertical-align:middle}
-.th-rsz{position:absolute;right:0;top:0;bottom:0;width:5px;cursor:col-resize;background:transparent;z-index:2}
+.th-rsz{position:absolute;right:0;top:0;bottom:0;width:8px;cursor:col-resize;background:transparent;z-index:2}
+.th-rsz::after{content:'';position:absolute;inset:0 -4px;} /* wider hit area */
 .th-rsz:hover,.th-rsz.dragging{background:var(--accent)}
+/* Clip cell text so fixed-layout columns don't blow out */
+#ros-table td.rc input,#ros-table td.rc select{overflow:hidden;text-overflow:ellipsis}
 .rr{background:var(--card2);transition:background .12s}
 .rr:hover{background:rgba(124,111,255,.07)}
 .rr.drag-over{background:rgba(124,111,255,.2);border-top:2px solid var(--accent)}
@@ -990,10 +993,10 @@ function renderTrello(data){
 // ═══════════════════════ RUN OF SHOW ═════════════════════
 const RT=['Improv','Sketch','Video','Music','Stand Up','Other'];
 const ROS_COLS={
-  name:    {label:'Act',        defaultW:null},
-  duration:{label:'Dur (min)',  defaultW:'72px'},
+  name:    {label:'Act',        defaultW:'160px'},
+  duration:{label:'Dur (min)',  defaultW:'80px'},
   type:    {label:'Type',       defaultW:'100px'},
-  notes:   {label:'Notes',      defaultW:null},
+  notes:   {label:'Notes / AV', defaultW:'180px'},
 };
 function pDur(s){const n=parseInt(s);return isNaN(n)||n<0?0:n;}
 function fDur(m){if(!m)return'0 min';return m===1?'1 min':m+' min';}
@@ -1011,9 +1014,9 @@ function upAVNote(aid,v){
   if(!S.av.matrix)S.av.matrix={};
   if(!S.av.matrix[aid])S.av.matrix[aid]={};
   S.av.matrix[aid]['__notes__']=v;
-  // Sync back to ROS act notes
+  // Sync back to ROS act notes and refresh table so changes appear immediately
   const a=S.ros.acts.find(a=>a.id===aid);if(a)a.notes=v;
-  schedSave();
+  schedSave();renderROS();
 }
 function stepDur(id,delta){
   const a=S.ros.acts.find(a=>a.id===id);if(!a)return;
@@ -1035,7 +1038,7 @@ function rosColCell(colId, a){
     case'name':    return`<td class="rc"><input value="${eA(a.name)}" placeholder="Act name…" oninput="upAct(${a.id},'name',this.value)"></td>`;
     case'duration':return`<td><div class="dur-cell"><input class="dur-num" type="number" min="1" value="${mins}" oninput="upAct(${a.id},'duration',this.value)"><div class="dur-spin"><button onclick="stepDur(${a.id},1)" tabindex="-1">▲</button><button onclick="stepDur(${a.id},-1)" tabindex="-1">▼</button></div><span class="dur-lbl">m</span></div></td>`;
     case'type':    return`<td class="rc"><select onchange="upAct(${a.id},'type',this.value)">${tOpts}</select></td>`;
-    case'notes':   return`<td class="rc"><input value="${eA(noteVal)}" placeholder="Notes…" oninput="upAct(${a.id},'notes',this.value)"></td>`;
+    case'notes':   return`<td class="rc"><input value="${eA(noteVal)}" placeholder="Notes / AV notes…" oninput="upAct(${a.id},'notes',this.value)" title="Shared with Tech/AV drawer"></td>`;
     default: return'<td></td>';
   }
 }
