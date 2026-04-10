@@ -150,9 +150,15 @@ body.col-dragging #cal-split-hint{border-color:var(--accent);opacity:1;backgroun
 /* ── RUN OF SHOW ── */
 #ros-body-wrap{flex:1;overflow:auto;padding:6px 12px;border-right:1px solid var(--border)}
 #ros-add{padding:6px 12px;border-right:1px solid var(--border);border-top:1px solid var(--border);flex-shrink:0;background:var(--card)}
-#ros-table{width:100%;border-collapse:collapse;font-size:.74rem;min-width:560px}
-#ros-table th{padding:5px 7px;text-align:left;font-size:.63rem;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border);background:var(--card);white-space:nowrap;position:sticky;top:0;z-index:1}
+#ros-table{width:100%;border-collapse:collapse;font-size:.74rem;min-width:400px}
+#ros-table th{padding:5px 7px;text-align:left;font-size:.63rem;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border);background:var(--card);white-space:nowrap;position:sticky;top:0;z-index:1;position:relative;user-select:none}
+#ros-table th.ros-col-drag{cursor:grab}
+#ros-table th.ros-col-drag:active{cursor:grabbing}
+#ros-table th.ros-col-dragging{opacity:.4;background:var(--accent2)}
+#ros-table th.ros-col-over{outline:2px solid var(--accent);outline-offset:-2px}
 #ros-table td{padding:0;border-bottom:1px solid var(--border);vertical-align:middle}
+.th-rsz{position:absolute;right:0;top:0;bottom:0;width:5px;cursor:col-resize;background:transparent;z-index:2}
+.th-rsz:hover,.th-rsz.dragging{background:var(--accent)}
 .rr{background:var(--card2);transition:background .12s}
 .rr:hover{background:rgba(124,111,255,.07)}
 .rr.drag-over{background:rgba(124,111,255,.2);border-top:2px solid var(--accent)}
@@ -462,7 +468,7 @@ td.bc select option{background:var(--card2)}
     </div>
     <div id="ros-body-wrap">
       <table id="ros-table">
-        <thead><tr>
+        <thead id="ros-thead"><tr>
           <th style="width:20px"></th><th style="width:20px">#</th>
           <th style="width:68px">Start</th><th>Act</th>
           <th style="width:70px">Dur (min)</th>
@@ -664,7 +670,7 @@ const dbDS=(k)=>new Promise((r,j)=>{const q=sn('readwrite').delete(k);q.onsucces
 // ═══════════════════════ STATE ═══════════════════════════
 let S={
   notes:'',tasks:[],calEvents:[],calAll:false,taskFilter:'all',tagFilter:null,noteMode:'edit',
-  ros:{start:'',acts:[]},
+  ros:{start:'',acts:[],colOrder:['name','duration','type','notes'],colWidths:{}},
   budget:{total:0,items:[]},
   team:[],
   av:{equip:[],matrix:{}},
@@ -945,6 +951,12 @@ function renderTrello(data){
 
 // ═══════════════════════ RUN OF SHOW ═════════════════════
 const RT=['Improv','Sketch','Video','Music','Stand Up','Other'];
+const ROS_COLS={
+  name:    {label:'Act',        defaultW:null},
+  duration:{label:'Dur (min)',  defaultW:'72px'},
+  type:    {label:'Type',       defaultW:'100px'},
+  notes:   {label:'Notes',      defaultW:null},
+};
 function pDur(s){const n=parseInt(s);return isNaN(n)||n<0?0:n;}
 function fDur(m){if(!m)return'0 min';return m===1?'1 min':m+' min';}
 function fTime(base,add){if(!base)return'';const[hh,mm]=base.split(':').map(Number);const tot=hh*60+mm+add;const h=Math.floor(tot/60)%24,min=tot%60;const ap=h>=12?'PM':'AM',h12=h%12||12;return`${h12}:${String(min).padStart(2,'0')} ${ap}`;}
@@ -954,10 +966,11 @@ function upAct(id,f,v){
   const a=S.ros.acts.find(a=>a.id===id);if(!a)return;
   a[f]=v;
   // Sync notes bidirectionally with AV matrix
-  if(f==='notes'){if(!S.av.matrix[id])S.av.matrix[id]={};S.av.matrix[id]['__notes__']=v;}
+  if(f==='notes'){if(!S.av.matrix)S.av.matrix={};if(!S.av.matrix[id])S.av.matrix[id]={};S.av.matrix[id]['__notes__']=v;}
   if(f==='duration')renderROS();else schedSave();
 }
 function upAVNote(aid,v){
+  if(!S.av.matrix)S.av.matrix={};
   if(!S.av.matrix[aid])S.av.matrix[aid]={};
   S.av.matrix[aid]['__notes__']=v;
   // Sync back to ROS act notes
@@ -975,38 +988,110 @@ function rDS(e,id){dSrc=id;e.dataTransfer.effectAllowed='move';e.currentTarget.c
 function rDO(e,id){e.preventDefault();document.querySelectorAll('.rr').forEach(r=>r.classList.remove('drag-over'));if(dSrc!==id)e.currentTarget.classList.add('drag-over');}
 function rDE(e){e.currentTarget.classList.remove('dragging');document.querySelectorAll('.rr').forEach(r=>r.classList.remove('drag-over'));}
 function rDP(e,tid){e.preventDefault();if(dSrc===tid)return;const acts=S.ros.acts;const fi=acts.findIndex(a=>a.id===dSrc),ti=acts.findIndex(a=>a.id===tid);if(fi<0||ti<0)return;const[item]=acts.splice(fi,1);acts.splice(ti,0,item);dSrc=null;saveS();renderROS();renderAV();}
+function rosColCell(colId, a){
+  const avNote=((S.av.matrix||{})[a.id]||{})['__notes__']||'';
+  const noteVal=a.notes||avNote;
+  const mins=pDur(a.duration)||0;
+  const tOpts=RT.map(t=>`<option value="${t}" ${a.type===t?'selected':''}>${t}</option>`).join('');
+  switch(colId){
+    case'name':    return`<td class="rc"><input value="${eA(a.name)}" placeholder="Act name…" oninput="upAct(${a.id},'name',this.value)"></td>`;
+    case'duration':return`<td><div class="dur-cell"><input class="dur-num" type="number" min="1" value="${mins}" oninput="upAct(${a.id},'duration',this.value)"><div class="dur-spin"><button onclick="stepDur(${a.id},1)" tabindex="-1">▲</button><button onclick="stepDur(${a.id},-1)" tabindex="-1">▼</button></div><span class="dur-lbl">m</span></div></td>`;
+    case'type':    return`<td class="rc"><select onchange="upAct(${a.id},'type',this.value)">${tOpts}</select></td>`;
+    case'notes':   return`<td class="rc"><input value="${eA(noteVal)}" placeholder="Notes…" oninput="upAct(${a.id},'notes',this.value)"></td>`;
+    default: return'<td></td>';
+  }
+}
 function renderROS(){
+  const thead=document.getElementById('ros-thead');
   const body=document.getElementById('ros-tbody');
   const start=S.ros.start||document.getElementById('ros-start').value;
   const acts=S.ros.acts;
   const total=acts.reduce((s,a)=>s+pDur(a.duration),0);
   const h=Math.floor(total/60),m=total%60;
   document.getElementById('ros-stat').textContent=`${h>0?h+'h ':''}${m}m · ${acts.length} acts`;
-  if(!acts.length){body.innerHTML=`<tr><td colspan="8" style="text-align:center;padding:14px;color:var(--muted);font-size:.76rem">No acts yet.</td></tr>`;return;}
+  const ord=S.ros.colOrder||['name','duration','type','notes'];
+  const ws=S.ros.colWidths||{};
+  // Render header with resize handles and drag grips
+  thead.innerHTML='<tr>'
+    +'<th style="width:20px"></th>'
+    +'<th style="width:20px">#</th>'
+    +'<th style="width:68px">Start</th>'
+    +ord.map(cid=>{
+      const cfg=ROS_COLS[cid]||{label:cid};
+      const w=ws[cid]||cfg.defaultW||'';
+      return`<th class="ros-col-drag" data-ros-col="${cid}" style="${w?`width:${w}`:''}">
+        <span>${cfg.label}</span>
+        <div class="th-rsz" data-rsz-col="${cid}" onmousedown="rosColRszStart(event,'${cid}')"></div>
+      </th>`;
+    }).join('')
+    +'<th style="width:20px"></th>'
+    +'</tr>';
+  // Attach column drag listeners
+  initROSColDrag();
+  if(!acts.length){body.innerHTML=`<tr><td colspan="${4+ord.length}" style="text-align:center;padding:14px;color:var(--muted);font-size:.76rem">No acts yet.</td></tr>`;return;}
   let cum=0;
   body.innerHTML=acts.map((a,i)=>{
     const cs=start?fTime(start,cum):'';cum+=pDur(a.duration);
-    const mins=pDur(a.duration)||0;
-    const tOpts=RT.map(t=>`<option value="${t}" ${a.type===t?'selected':''}>${t}</option>`).join('');
-    // Sync AV notes → ROS if AV has something and ROS doesn't yet
-    const avNote=(S.av.matrix[a.id]||{})['__notes__']||'';
-    const noteVal=a.notes||avNote;
     return`<tr class="rr" draggable="true" ondragstart="rDS(event,${a.id})" ondragover="rDO(event,${a.id})" ondragend="rDE(event)" ondrop="rDP(event,${a.id})">
       <td><div class="rh">⠿</div></td><td class="rn">${i+1}</td><td class="rs">${cs}</td>
-      <td class="rc"><input value="${eA(a.name)}" placeholder="Act name…" oninput="upAct(${a.id},'name',this.value)"></td>
-      <td><div class="dur-cell">
-        <input class="dur-num" type="number" min="1" value="${mins}" oninput="upAct(${a.id},'duration',this.value)">
-        <div class="dur-spin">
-          <button onclick="stepDur(${a.id},1)" tabindex="-1">▲</button>
-          <button onclick="stepDur(${a.id},-1)" tabindex="-1">▼</button>
-        </div>
-        <span class="dur-lbl">m</span>
-      </div></td>
-      <td class="rc"><select onchange="upAct(${a.id},'type',this.value)">${tOpts}</select></td>
-      <td class="rc"><input value="${eA(noteVal)}" placeholder="Notes…" oninput="upAct(${a.id},'notes',this.value)"></td>
+      ${ord.map(cid=>rosColCell(cid,a)).join('')}
       <td><button class="rdel" onclick="delAct(${a.id})">🗑</button></td>
     </tr>`;
   }).join('');
+}
+function rosColRszStart(e, colId){
+  e.preventDefault();e.stopPropagation();
+  const th=e.currentTarget.closest('th');
+  const startX=e.clientX, startW=th.getBoundingClientRect().width;
+  const rsz=e.currentTarget;rsz.classList.add('dragging');
+  function onMove(ev){
+    const w=Math.max(40,startW+(ev.clientX-startX));
+    th.style.width=w+'px';
+    if(!S.ros.colWidths)S.ros.colWidths={};
+    S.ros.colWidths[colId]=w+'px';
+  }
+  function onUp(){
+    rsz.classList.remove('dragging');
+    document.removeEventListener('mousemove',onMove);
+    document.removeEventListener('mouseup',onUp);
+    schedSave();
+  }
+  document.addEventListener('mousemove',onMove);
+  document.addEventListener('mouseup',onUp);
+}
+let rosColDragSrc=null;
+function initROSColDrag(){
+  document.querySelectorAll('#ros-thead th.ros-col-drag').forEach(th=>{
+    th.addEventListener('mousedown',e=>{
+      if(e.target.closest('.th-rsz,input,select,button'))return;
+      const colId=th.dataset.rosCol;
+      e.preventDefault();
+      rosColDragSrc=colId;
+      th.classList.add('ros-col-dragging');
+      function onMove(ev){
+        document.querySelectorAll('#ros-thead th.ros-col-drag').forEach(t=>t.classList.remove('ros-col-over'));
+        const over=document.elementFromPoint(ev.clientX,ev.clientY)?.closest('th.ros-col-drag');
+        if(over&&over!==th)over.classList.add('ros-col-over');
+      }
+      function onUp(ev){
+        th.classList.remove('ros-col-dragging');
+        document.querySelectorAll('#ros-thead th.ros-col-drag').forEach(t=>t.classList.remove('ros-col-over'));
+        const over=document.elementFromPoint(ev.clientX,ev.clientY)?.closest('th.ros-col-drag');
+        if(over&&over!==th){
+          const tgtId=over.dataset.rosCol;
+          const ord=S.ros.colOrder;
+          const si=ord.indexOf(colId),ti=ord.indexOf(tgtId);
+          if(si>-1&&ti>-1){ord.splice(si,1);ord.splice(ti,0,colId);}
+          renderROS();schedSave();
+        }
+        rosColDragSrc=null;
+        document.removeEventListener('mousemove',onMove);
+        document.removeEventListener('mouseup',onUp);
+      }
+      document.addEventListener('mousemove',onMove);
+      document.addEventListener('mouseup',onUp);
+    });
+  });
 }
 function exportROSMD(){
   const s=S.ros.start;const total=S.ros.acts.reduce((t,a)=>t+pDur(a.duration),0);
@@ -1658,9 +1743,12 @@ async function init(){
     dbG('av').catch(()=>null),dbG('tickets').catch(()=>null)
   ]);
   if(tasks)S.tasks=tasks;if(calEvts)S.calEvents=calEvts;
-  if(ros){S.ros=ros;document.getElementById('ros-start').value=ros.start||'';}
+  if(ros){S.ros=ros;document.getElementById('ros-start').value=ros.start||'';
+    if(!S.ros.colOrder)S.ros.colOrder=['name','duration','type','notes'];
+    if(!S.ros.colWidths)S.ros.colWidths={};}
   if(budget){S.budget=budget;document.getElementById('bud-tot-in').value=budget.total||'';}
-  if(team)S.team=team;if(av)S.av=av;
+  if(team)S.team=team;
+  if(av){S.av=av;if(!S.av.matrix)S.av.matrix={};}  // guard missing matrix key
   if(tickets){S.tickets=tickets;document.getElementById('cap-in').value=tickets.cap||'';}
 
   await loadSnaps();
