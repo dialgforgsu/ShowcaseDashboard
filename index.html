@@ -184,6 +184,24 @@ td.rc select option{background:var(--card2)}
 .rr:hover .rdel{opacity:1}
 .rdel:hover{color:var(--coral)}
 
+/* Cal → Task button */
+.cal-to-task-btn{margin-top:5px;background:rgba(124,111,255,.1);border:1px solid rgba(124,111,255,.3);border-radius:4px;color:var(--accent);cursor:pointer;font-size:.62rem;padding:2px 7px;font-family:inherit;transition:all .15s;display:block;width:100%}
+.cal-to-task-btn:hover{background:rgba(124,111,255,.22)}
+.cal-to-task-btn.added{background:rgba(0,212,170,.1);border-color:var(--teal);color:var(--teal);cursor:default}
+
+/* Task priority */
+.ti{border-left:3px solid transparent}
+.ti.pri-high{border-left-color:var(--coral)}
+.ti.pri-med{border-left-color:var(--gold)}
+.ti.pri-low{border-left-color:var(--teal)}
+.tpri{font-size:.6rem;font-weight:700;padding:1px 5px;border-radius:3px;cursor:pointer;flex-shrink:0;line-height:1.5;user-select:none;margin-top:1px;border:1px solid transparent}
+.tpri:hover{opacity:.8}
+.tpri.p-high{background:rgba(255,107,107,.18);color:var(--coral);border-color:rgba(255,107,107,.4)}
+.tpri.p-med{background:rgba(255,209,102,.18);color:var(--gold);border-color:rgba(255,209,102,.4)}
+.tpri.p-low{background:rgba(0,212,170,.18);color:var(--teal);border-color:rgba(0,212,170,.3)}
+.tpri.p-none{color:var(--border);border-color:transparent}
+#ti-pri-btn{padding:3px 6px;flex-shrink:0;font-weight:700;min-width:26px;text-align:center}
+
 /* ── TASKS ── */
 #task-add{display:flex;gap:4px;padding:6px}
 #ti-text{flex:1;background:var(--card2);border:1px solid var(--border);border-radius:5px;color:var(--text);padding:4px 8px;font-size:.76rem;outline:none}
@@ -556,6 +574,7 @@ td.bc select option{background:var(--card2)}
     <div id="task-add">
       <input id="ti-text" type="text" placeholder="New task…" onkeydown="if(event.key==='Enter')addTask()">
       <input id="ti-tags" type="text" placeholder="@tag…" title="Tags comma-sep">
+      <button id="ti-pri-btn" class="btn sm" onclick="cycleNewPri()" title="Priority: none">·</button>
       <button class="btn primary sm" onclick="addTask()">+</button>
     </div>
     <div id="task-stats"></div>
@@ -835,13 +854,36 @@ function ptags(s){return s.split(/[,]+/).map(t=>t.trim().replace(/^[@#]/,'')).fi
 function addTask(){
   const ti=document.getElementById('ti-text'),tg=document.getElementById('ti-tags');
   const txt=ti.value.trim();if(!txt)return;
-  S.tasks.push({id:Date.now(),text:txt,done:false,created:new Date().toISOString(),tags:ptags(tg.value)});
-  ti.value='';tg.value='';renderTasks();schedSave();
+  S.tasks.push({id:Date.now(),text:txt,done:false,created:new Date().toISOString(),tags:ptags(tg.value),priority:_newTaskPri});
+  ti.value='';tg.value='';
+  _newTaskPri='';const pb=document.getElementById('ti-pri-btn');if(pb){pb.textContent='·';pb.title='Priority: none';pb.style.cssText='';}
+  renderTasks();schedSave();
 }
 function toggleTask(id){const t=S.tasks.find(t=>t.id===id);if(t){t.done=!t.done;renderTasks();schedSave();}}
 function delTask(id){S.tasks=S.tasks.filter(t=>t.id!==id);renderTasks();schedSave();}
 function setTF(f,el){S.taskFilter=f;document.querySelectorAll('#task-filter .btn').forEach(b=>b.classList.remove('active'));el.classList.add('active');renderTasks();}
 function setTagFilter(tag){S.tagFilter=S.tagFilter===tag?null:tag;renderTasks();}
+
+const PRIS=['','high','med','low'];
+const PRI_CFG={high:{label:'H',cls:'p-high',title:'High'},med:{label:'M',cls:'p-med',title:'Med'},low:{label:'L',cls:'p-low',title:'Low'}};
+let _newTaskPri='';
+function _applyPriBtn(btn,p){
+  const cfg=PRI_CFG[p];
+  btn.textContent=cfg?cfg.label:'·';
+  btn.title='Priority: '+(cfg?cfg.title:'none');
+  btn.style.cssText=p==='high'?'background:rgba(255,107,107,.2);color:var(--coral);border-color:rgba(255,107,107,.5)'
+    :p==='med'?'background:rgba(255,209,102,.2);color:var(--gold);border-color:rgba(255,209,102,.5)'
+    :p==='low'?'background:rgba(0,212,170,.2);color:var(--teal);border-color:rgba(0,212,170,.4)':'';
+}
+function cycleNewPri(){
+  _newTaskPri=PRIS[(PRIS.indexOf(_newTaskPri)+1)%PRIS.length];
+  _applyPriBtn(document.getElementById('ti-pri-btn'),_newTaskPri);
+}
+function cyclePri(id){
+  const t=S.tasks.find(t=>t.id===id);if(!t)return;
+  t.priority=PRIS[(PRIS.indexOf(t.priority||'')+1)%PRIS.length];
+  renderTasks();schedSave();
+}
 function renderTasks(){
   if(_gsActive){const q=document.getElementById('global-search');if(q&&q.value.trim())return globalSearch(q.value);}
   const done=S.tasks.filter(t=>t.done).length;
@@ -855,14 +897,19 @@ function renderTasks(){
   if(S.tagFilter)items=items.filter(t=>(t.tags||[]).includes(S.tagFilter));
   const body=document.getElementById('task-body');
   if(!items.length){body.innerHTML='<div class="empty">No tasks.</div>';return;}
-  body.innerHTML=items.map(t=>`<div class="ti ${t.done?'done':''}">
-    <input class="tcb" type="checkbox" ${t.done?'checked':''} onchange="toggleTask(${t.id})">
-    <div class="tm">
-      <div class="tt">${eH(t.text)}</div>
-      ${(t.tags||[]).length?`<div class="ttr">${(t.tags||[]).map(tg=>`<span class="tag" style="${tgs(tg)}" onclick="setTagFilter('${eA(tg)}')">${eH(tg)}</span>`).join('')}</div>`:''}
-    </div>
-    <button class="tdel" onclick="delTask(${t.id})">✕</button>
-  </div>`).join('');
+  body.innerHTML=items.map(t=>{
+    const p=t.priority&&PRI_CFG[t.priority];
+    const priCls=t.priority?'pri-'+t.priority:'';
+    return`<div class="ti ${t.done?'done':''} ${priCls}">
+      <input class="tcb" type="checkbox" ${t.done?'checked':''} onchange="toggleTask(${t.id})">
+      <span class="tpri ${p?p.cls:'p-none'}" onclick="cyclePri(${t.id})" title="Priority: ${p?p.title:'none — click to set'}">${p?p.label:'·'}</span>
+      <div class="tm">
+        <div class="tt">${eH(t.text)}</div>
+        ${(t.tags||[]).length?`<div class="ttr">${(t.tags||[]).map(tg=>`<span class="tag" style="${tgs(tg)}" onclick="setTagFilter('${eA(tg)}')">${eH(tg)}</span>`).join('')}</div>`:''}
+      </div>
+      <button class="tdel" onclick="delTask(${t.id})">✕</button>
+    </div>`;
+  }).join('');
 }
 
 // ═══════════════════════ CALENDAR ════════════════════════
@@ -905,14 +952,25 @@ function renderCal(){
   const soon=new Date(now.getTime()+7*86400000),tod=new Date(now);tod.setHours(23,59,59);
   document.getElementById('cal-list').innerHTML=show.map(e=>{
     const cls=e.start<=tod?'today':e.start<=soon?'soon':'';
+    const alreadyTask=S.tasks.some(t=>t._calTs===e.start.getTime());
     return`<div class="cal-evt ${cls}">
       <div class="cal-evt-title">${eH(e.title)}${e.start<=tod?' 🔴':e.start<=soon?' 🟡':''}</div>
       <div class="cal-evt-date">${fmt(e.start)}</div>
       ${e.location?`<div class="cal-evt-loc">📍 ${eH(e.location)}</div>`:''}
+      <button class="cal-to-task-btn${alreadyTask?' added':''}" onclick="calToTask(${e.start.getTime()},this)">${alreadyTask?'✓ In Tasks':'+ Task'}</button>
     </div>`;
   }).join('');
 }
 function toggleCalAll(){S.calAll=!S.calAll;renderCal();}
+function calToTask(ts,btn){
+  if(S.tasks.some(t=>t._calTs===ts)){showToast('Already in tasks','error');return;}
+  const e=S.calEvents.find(ev=>ev.start&&ev.start.getTime()===ts);if(!e)return;
+  const dTag=e.start.toLocaleDateString('en-US',{month:'short',day:'numeric'}).replace(' ','-');
+  S.tasks.push({id:Date.now(),text:e.title,done:false,created:new Date().toISOString(),tags:['event',dTag],priority:'',_calTs:ts});
+  renderTasks();schedSave();
+  if(btn){btn.textContent='✓ In Tasks';btn.classList.add('added');btn.onclick=null;}
+  showToast('Added to tasks','success');
+}
 
 // ═══════════════════════ TRELLO ══════════════════════════
 const TRELLO_URL='https://trello.com/b/gDrNovhq.json';
@@ -1163,10 +1221,11 @@ function renderROS(){
   const ord=S.ros.colOrder||['name','duration','type','notes'];
   const ws=S.ros.colWidths||{};
   // Render header with resize handles and drag grips
+  const startW=ws['__start']||'68px';
   thead.innerHTML='<tr>'
     +'<th style="width:20px"></th>'
     +'<th style="width:20px">#</th>'
-    +'<th style="width:68px">Start</th>'
+    +`<th style="width:${startW};position:relative">Start<div class="th-rsz" onmousedown="rosColRszStart(event,'__start')"></div></th>`
     +ord.map(cid=>{
       const cfg=ROS_COLS[cid]||{label:cid};
       const w=ws[cid]||cfg.defaultW||'';
@@ -1651,14 +1710,19 @@ function globalSearch(q){
   );
   const taskBody=document.getElementById('task-body');
   if(!matched.length){taskBody.innerHTML='<div class="empty">No matching tasks.</div>';}
-  else{taskBody.innerHTML=matched.map(t=>`<div class="ti ${t.done?'done':''}">
-    <input class="tcb" type="checkbox" ${t.done?'checked':''} onchange="toggleTask(${t.id})">
-    <div class="tm">
-      <div class="tt">${gsHl(eH(t.text),term)}</div>
-      ${(t.tags||[]).length?`<div class="ttr">${(t.tags||[]).map(tg=>`<span class="tag" style="${tgs(tg)}">${gsHl(eH(tg),term)}</span>`).join('')}</div>`:''}
-    </div>
-    <button class="tdel" onclick="delTask(${t.id})">✕</button>
-  </div>`).join('');}
+  else{taskBody.innerHTML=matched.map(t=>{
+    const p=t.priority&&PRI_CFG[t.priority];
+    const priCls=t.priority?'pri-'+t.priority:'';
+    return`<div class="ti ${t.done?'done':''} ${priCls}">
+      <input class="tcb" type="checkbox" ${t.done?'checked':''} onchange="toggleTask(${t.id})">
+      <span class="tpri ${p?p.cls:'p-none'}" onclick="cyclePri(${t.id})" title="Priority">${p?p.label:'·'}</span>
+      <div class="tm">
+        <div class="tt">${gsHl(eH(t.text),term)}</div>
+        ${(t.tags||[]).length?`<div class="ttr">${(t.tags||[]).map(tg=>`<span class="tag" style="${tgs(tg)}">${gsHl(eH(tg),term)}</span>`).join('')}</div>`:''}
+      </div>
+      <button class="tdel" onclick="delTask(${t.id})">✕</button>
+    </div>`;
+  }).join('');}
   // Update task count badge to reflect search results
   document.getElementById('tcnt').textContent=`${matched.length} match${matched.length!==1?'es':''}`;
   // ── Calendar ──
